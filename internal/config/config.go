@@ -45,41 +45,34 @@ func Load() *Config {
 
 	return &Config{
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnvAsInt("DB_PORT", 5432),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "password"),
-			Name:     getEnv("DB_NAME", "mobile_store"),
+			Host:     os.Getenv("DB_HOST"),
+			Port:     getEnvAsInt("DB_PORT"),
+			User:     os.Getenv("DB_USER"),
+			Password: os.Getenv("DB_PASSWORD"),
+			Name:     os.Getenv("DB_NAME"),
 		},
 		Redis: RedisConfig{
-			Host:     getEnv("REDIS_HOST", "localhost"),
-			Port:     getEnvAsInt("REDIS_PORT", 6379),
-			Password: getEnv("REDIS_PASSWORD", ""),
+			Host:     os.Getenv("REDIS_HOST"),
+			Port:     getEnvAsInt("REDIS_PORT"),
+			Password: os.Getenv("REDIS_PASSWORD"),
 		},
 		Server: ServerConfig{
-			Host: getEnv("SERVER_HOST", "localhost"),
-			Port: getEnvAsInt("SERVER_PORT", 8080),
+			Host: os.Getenv("SERVER_HOST"),
+			Port: getEnvAsInt("SERVER_PORT"),
 		},
 		JWT: JWTConfig{
-			Secret:      getEnv("JWT_SECRET", "your-super-secret-jwt-key-here"),
-			ExpireHours: getEnvAsInt("JWT_EXPIRE_HOURS", 24),
+			Secret:      os.Getenv("JWT_SECRET"),
+			ExpireHours: getEnvAsInt("JWT_EXPIRE_HOURS"),
 		},
-		Env: getEnv("ENV", "development"),
+		Env: os.Getenv("ENV"),
 	}
 }
 
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func getEnvAsInt(key string, defaultValue int) int {
+func getEnvAsInt(key string) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
 		}
 	}
-	return defaultValue
+	return 0
 }
