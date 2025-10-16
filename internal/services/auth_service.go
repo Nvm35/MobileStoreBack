@@ -29,12 +29,12 @@ type LoginRequest struct {
 }
 
 type RegisterRequest struct {
-	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required,min=6"`
-	FirstName string `json:"first_name" validate:"required,min=2"`
-	LastName  string `json:"last_name" validate:"required,min=2"`
-	Phone     string `json:"phone" validate:"omitempty,e164"`
-	Gender    string `json:"gender" validate:"omitempty,oneof=male female"`
+	Email     string  `json:"email" validate:"required,email"`
+	Password  string  `json:"password" validate:"required,min=6"`
+	FirstName string  `json:"first_name" validate:"required,min=2"`
+	LastName  string  `json:"last_name" validate:"required,min=2"`
+	Phone     string  `json:"phone" validate:"omitempty,e164"`
+	Gender    *string `json:"gender" validate:"omitempty,oneof=male female"`
 }
 
 type AuthResponse struct {
@@ -62,9 +62,13 @@ func (s *AuthService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		FirstName: req.FirstName,
 		LastName:   req.LastName,
 		Phone:    req.Phone,
-		Gender:   req.Gender,
 		IsActive: true,
 		IsAdmin:  false,
+	}
+	
+	// Устанавливаем gender только если он указан
+	if req.Gender != nil {
+		user.Gender = req.Gender
 	}
 
 	if err := s.repo.CreateUser(user); err != nil {

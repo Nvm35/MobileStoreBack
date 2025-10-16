@@ -15,7 +15,7 @@ type User struct {
 	LastName               string          `json:"last_name" gorm:"not null" validate:"required,min=2"`
 	Phone                  string          `json:"phone" gorm:"type:varchar(20)" validate:"omitempty,e164"`
 	DateOfBirth            *time.Time      `json:"date_of_birth" gorm:"type:date"`
-	Gender                 string          `json:"gender" gorm:"type:varchar(10)" validate:"omitempty,oneof=male female"`
+	Gender                 *string         `json:"gender,omitempty" gorm:"type:varchar(10)" validate:"omitempty,oneof=male female"`
 	IsActive               bool            `json:"is_active" gorm:"default:true"`
 	IsAdmin                bool            `json:"is_admin" gorm:"default:false"`
 	EmailVerified          bool            `json:"email_verified" gorm:"default:false"`

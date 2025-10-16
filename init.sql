@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     date_of_birth DATE,
-    gender VARCHAR(10) CHECK (gender IS NULL OR gender IN ('male', 'female')),
+    gender VARCHAR(10) CHECK (gender IS NULL OR gender = '' OR gender IN ('male', 'female')),
     is_active BOOLEAN DEFAULT true,
     is_admin BOOLEAN DEFAULT false,
     email_verified BOOLEAN DEFAULT false,

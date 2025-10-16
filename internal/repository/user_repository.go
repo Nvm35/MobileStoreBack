@@ -40,7 +40,7 @@ func (r *userRepository) GetByID(id string) (*models.User, error) {
 
 	// Получаем из базы данных
 	var user models.User
-	if err := r.db.Preload("Addresses").First(&user, "id = ?", id).Error; err != nil {
+	if err := r.db.First(&user, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 
@@ -53,7 +53,7 @@ func (r *userRepository) GetByID(id string) (*models.User, error) {
 
 func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	var user models.User
-	if err := r.db.Preload("Addresses").First(&user, "email = ?", email).Error; err != nil {
+	if err := r.db.First(&user, "email = ?", email).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -81,7 +81,7 @@ func (r *userRepository) UpdateProfile(userID string, firstName *string, lastNam
 		}
 	}
 	if gender != nil {
-		user.Gender = *gender
+		user.Gender = gender
 	}
 	
 	err = r.db.Save(&user).Error
@@ -118,7 +118,7 @@ func (r *userRepository) Update(id string, firstName *string, lastName *string, 
 		}
 	}
 	if gender != nil {
-		user.Gender = *gender
+		user.Gender = gender
 	}
 	if isActive != nil {
 		user.IsActive = *isActive
