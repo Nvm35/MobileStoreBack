@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 func GetProfile(userService *services.UserService) gin.HandlerFunc {
@@ -24,8 +25,35 @@ func GetProfile(userService *services.UserService) gin.HandlerFunc {
 
 func UpdateProfile(userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: Implement profile update
-		c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented yet"})
+		userID, _ := c.Get("user_id")
+		
+		var req struct {
+			FirstName   *string `json:"first_name" validate:"omitempty,min=2"`
+			LastName    *string `json:"last_name" validate:"omitempty,min=2"`
+			Phone       *string `json:"phone" validate:"omitempty,e164"`
+			DateOfBirth *string `json:"date_of_birth" validate:"omitempty,datetime=2006-01-02"`
+			Gender      *string `json:"gender" validate:"omitempty,oneof=male female"`
+		}
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Валидация
+		validate := validator.New()
+		if err := validate.Struct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		user, err := userService.UpdateProfile(userID.(string), req.FirstName, req.LastName, req.Phone, req.DateOfBirth, req.Gender)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
 	}
 }
 
@@ -60,14 +88,50 @@ func GetUser(userService *services.UserService) gin.HandlerFunc {
 
 func UpdateUser(userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: Implement user update
-		c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented yet"})
+		id := c.Param("id")
+		
+		var req struct {
+			FirstName   *string `json:"first_name" validate:"omitempty,min=2"`
+			LastName    *string `json:"last_name" validate:"omitempty,min=2"`
+			Phone       *string `json:"phone" validate:"omitempty,e164"`
+			DateOfBirth *string `json:"date_of_birth" validate:"omitempty,datetime=2006-01-02"`
+			Gender      *string `json:"gender" validate:"omitempty,oneof=male female"`
+			IsActive    *bool   `json:"is_active"`
+			IsAdmin     *bool   `json:"is_admin"`
+		}
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Валидация
+		validate := validator.New()
+		if err := validate.Struct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		user, err := userService.Update(id, req.FirstName, req.LastName, req.Phone, req.DateOfBirth, req.Gender, req.IsActive, req.IsAdmin)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
 	}
 }
 
 func DeleteUser(userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: Implement user deletion
-		c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented yet"})
+		id := c.Param("id")
+		
+		err := userService.Delete(id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 	}
 }

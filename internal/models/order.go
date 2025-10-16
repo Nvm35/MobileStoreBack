@@ -7,27 +7,33 @@ import (
 )
 
 type Order struct {
-	ID           uuid.UUID     `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID       uuid.UUID     `json:"user_id" gorm:"type:uuid;not null"`
-	OrderNumber  string        `json:"order_number" gorm:"uniqueIndex;not null"`
-	Status       OrderStatus   `json:"status" gorm:"not null;default:'pending'"`
-	TotalAmount  float64       `json:"total_amount" gorm:"not null" validate:"min=0"`
-	Subtotal     float64       `json:"subtotal" gorm:"not null" validate:"min=0"`
-	TaxAmount    float64       `json:"tax_amount" gorm:"not null;default:0" validate:"min=0"`
-	ShippingCost float64       `json:"shipping_cost" gorm:"not null;default:0" validate:"min=0"`
-	DiscountAmount float64     `json:"discount_amount" gorm:"not null;default:0" validate:"min=0"`
-	PaymentMethod string       `json:"payment_method" validate:"required,oneof=cash card transfer"`
-	PaymentStatus PaymentStatus `json:"payment_status" gorm:"not null;default:'pending'"`
-	Notes        string        `json:"notes" gorm:"type:text"`
-	ShippedAt    *time.Time    `json:"shipped_at"`
-	DeliveredAt  *time.Time    `json:"delivered_at"`
-	CreatedAt    time.Time     `json:"created_at"`
-	UpdatedAt    time.Time     `json:"updated_at"`
+	ID                uuid.UUID     `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID            uuid.UUID     `json:"user_id" gorm:"type:uuid;not null"`
+	OrderNumber       string        `json:"order_number" gorm:"uniqueIndex;not null"`
+	Status            OrderStatus   `json:"status" gorm:"not null;default:'pending'"`
+	TotalAmount       float64       `json:"total_amount" gorm:"not null" validate:"min=0"`
+	Subtotal          float64       `json:"subtotal" gorm:"not null" validate:"min=0"`
+	ShippingCost      float64       `json:"shipping_cost" gorm:"not null;default:0" validate:"min=0"`
+	DiscountAmount    float64       `json:"discount_amount" gorm:"not null;default:0" validate:"min=0"`
+	PaymentMethod     string        `json:"payment_method" gorm:"not null" validate:"required,oneof=cash card transfer"`
+	PaymentStatus     PaymentStatus `json:"payment_status" gorm:"not null;default:'pending'"`
+	// Способ доставки
+	ShippingMethod    string        `json:"shipping_method" gorm:"not null;default:'delivery'" validate:"required,oneof=delivery pickup"`
+	// Адрес доставки (если нужен другой адрес, чем у пользователя)
+	ShippingAddress   string        `json:"shipping_address" gorm:"type:text"`
+	// Пункт самовывоза (если выбран pickup)
+	PickupPoint       string        `json:"pickup_point" gorm:"type:text"`
+	TrackingNumber    string        `json:"tracking_number"`
+	Notes             string        `json:"notes" gorm:"type:text"`
+	CustomerNotes     string        `json:"customer_notes" gorm:"type:text"`
+	ShippedAt         *time.Time    `json:"shipped_at"`
+	DeliveredAt       *time.Time    `json:"delivered_at"`
+	CreatedAt         time.Time     `json:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at"`
 
 	// Связи
-	User       User        `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	OrderItems []OrderItem `json:"order_items,omitempty" gorm:"foreignKey:OrderID"`
-	Address    Address     `json:"address,omitempty" gorm:"foreignKey:OrderID"`
+	User             User             `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	OrderItems       []OrderItem      `json:"order_items,omitempty" gorm:"foreignKey:OrderID"`
 }
 
 type OrderItem struct {

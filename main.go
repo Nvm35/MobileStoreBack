@@ -18,7 +18,7 @@ import (
 // @version 1.0
 // @description API для магазина мобильных аксессуаров
 // @host localhost:8080
-// @BasePath /api/v1
+// @BasePath /api
 func main() {
 	// Инициализация конфигурации
 	cfg := config.Load()

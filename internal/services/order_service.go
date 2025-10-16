@@ -3,6 +3,8 @@ package services
 import (
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/repository"
+
+	"github.com/google/uuid"
 )
 
 type OrderService struct {
@@ -15,8 +17,27 @@ func NewOrderService(repo repository.OrderRepository) *OrderService {
 	}
 }
 
-func (s *OrderService) Create(order *models.Order) error {
-	return s.repo.Create(order)
+func (s *OrderService) Create(userID string, items []struct {
+	ProductID uuid.UUID
+	Quantity  int
+}, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string, couponCode string) (*models.Order, error) {
+	// Конвертируем UUID в строки для repository
+	itemsStr := make([]struct {
+		ProductID string
+		Quantity  int
+	}, len(items))
+	
+	for i, item := range items {
+		itemsStr[i] = struct {
+			ProductID string
+			Quantity  int
+		}{
+			ProductID: item.ProductID.String(),
+			Quantity:  item.Quantity,
+		}
+	}
+	
+	return s.repo.Create(userID, itemsStr, shippingMethod, shippingAddress, pickupPoint, paymentMethod, customerNotes, couponCode)
 }
 
 func (s *OrderService) GetByID(id string) (*models.Order, error) {
@@ -27,8 +48,12 @@ func (s *OrderService) GetByUserID(userID string, limit, offset int) ([]*models.
 	return s.repo.GetByUserID(userID, limit, offset)
 }
 
-func (s *OrderService) Update(order *models.Order) error {
-	return s.repo.Update(order)
+func (s *OrderService) Update(id string, userID string, status *string, paymentStatus *string, trackingNumber *string, customerNotes *string, shippingMethod *string, shippingAddress *string, pickupPoint *string) (*models.Order, error) {
+	return s.repo.Update(id, userID, status, paymentStatus, trackingNumber, customerNotes, shippingMethod, shippingAddress, pickupPoint)
+}
+
+func (s *OrderService) UpdateStatus(id string, status string, trackingNumber *string) (*models.Order, error) {
+	return s.repo.UpdateStatus(id, status, trackingNumber)
 }
 
 func (s *OrderService) Delete(id string) error {

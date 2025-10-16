@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS categories (
     description TEXT,
     slug VARCHAR(255) NOT NULL UNIQUE,
     is_active BOOLEAN DEFAULT true,
-    parent_id UUID REFERENCES categories(id),
     sort_order INTEGER DEFAULT 0,
     image_url TEXT, -- URL изображения категории
     meta_title VARCHAR(255), -- для SEO
@@ -34,7 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     date_of_birth DATE,
-    gender VARCHAR(10) CHECK (gender IN ('male', 'female')),
+    gender VARCHAR(10) CHECK (gender IS NULL OR gender IN ('male', 'female')),
     is_active BOOLEAN DEFAULT true,
     is_admin BOOLEAN DEFAULT false,
     email_verified BOOLEAN DEFAULT false,
@@ -44,31 +43,20 @@ CREATE TABLE IF NOT EXISTS users (
     last_login TIMESTAMP,
     -- Уведомления (вместо отдельной таблицы)
     notifications JSONB DEFAULT '[]', -- [{"type": "order", "title": "Заказ отправлен", "message": "Ваш заказ #12345 отправлен", "is_read": false, "created_at": "2024-01-01T10:00:00Z"}]
+    -- Адрес пользователя (вместо отдельной таблицы addresses)
+    address_title VARCHAR(255),
+    address_first_name VARCHAR(255),
+    address_last_name VARCHAR(255),
+    address_company VARCHAR(255),
+    address_street TEXT,
+    address_city VARCHAR(255),
+    address_state VARCHAR(255),
+    address_postal_code VARCHAR(20),
+    address_country VARCHAR(255),
+    address_phone VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
-);
-
--- 3. Таблица брендов удалена - бренд хранится как строка в products
-
--- 4. Создание таблицы адресов (зависит от users)
-CREATE TABLE IF NOT EXISTS addresses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
-    company VARCHAR(255),
-    address TEXT NOT NULL,
-    city VARCHAR(255) NOT NULL,
-    state VARCHAR(255),
-    postal_code VARCHAR(20) NOT NULL,
-    country VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
-    is_default BOOLEAN DEFAULT false,
-    address_type VARCHAR(20) DEFAULT 'shipping' CHECK (address_type IN ('shipping', 'billing')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 5. Создание таблицы продуктов (зависит от categories)
@@ -80,9 +68,7 @@ CREATE TABLE IF NOT EXISTS products (
     price DECIMAL(10,2) NOT NULL,
     compare_price DECIMAL(10,2), -- цена для сравнения (зачеркнутая цена)
     sku VARCHAR(255) NOT NULL UNIQUE,
-    barcode VARCHAR(255),
     stock INTEGER NOT NULL DEFAULT 0,
-    min_stock INTEGER DEFAULT 0, -- минимальный остаток для уведомлений
     is_active BOOLEAN DEFAULT true,
     is_featured BOOLEAN DEFAULT false, -- товар в избранном
     is_new BOOLEAN DEFAULT false, -- новинка
@@ -94,12 +80,6 @@ CREATE TABLE IF NOT EXISTS products (
     material VARCHAR(255),
     category_id UUID NOT NULL REFERENCES categories(id),
     tags TEXT[], -- массив тегов
-    attributes JSONB, -- гибкие атрибуты товара в JSON
-    specifications JSONB, -- технические характеристики в JSON
-    -- Простая совместимость (вместо сложной таблицы)
-    compatible_with TEXT[], -- массив совместимых устройств: ['iPhone 15', 'Samsung Galaxy S24']
-    -- История складских операций (вместо отдельной таблицы)
-    stock_history JSONB DEFAULT '[]', -- [{"type": "in", "quantity": 100, "date": "2024-01-01", "reason": "purchase"}]
     meta_title VARCHAR(255), -- для SEO
     meta_description TEXT, -- для SEO
     view_count INTEGER DEFAULT 0, -- количество просмотров
@@ -163,22 +143,7 @@ CREATE TABLE IF NOT EXISTS coupons (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 10. Создание таблицы способов доставки
-CREATE TABLE IF NOT EXISTS shipping_methods (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    cost DECIMAL(10,2) NOT NULL DEFAULT 0,
-    free_shipping_threshold DECIMAL(10,2), -- бесплатная доставка от суммы
-    estimated_days_min INTEGER, -- минимальные дни доставки
-    estimated_days_max INTEGER, -- максимальные дни доставки
-    is_active BOOLEAN DEFAULT true,
-    sort_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 11. Создание таблицы заказов (зависит от users, shipping_methods, addresses)
+-- 11. Создание таблицы заказов (зависит от users)
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
@@ -186,18 +151,19 @@ CREATE TABLE IF NOT EXISTS orders (
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     total_amount DECIMAL(10,2) NOT NULL,
     subtotal DECIMAL(10,2) NOT NULL,
-    tax_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
     shipping_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
     discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
     payment_method VARCHAR(50) NOT NULL,
     payment_status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    shipping_method_id UUID REFERENCES shipping_methods(id),
-    shipping_address_id UUID REFERENCES addresses(id),
-    billing_address_id UUID REFERENCES addresses(id),
+    -- Способ доставки
+    shipping_method VARCHAR(50) NOT NULL DEFAULT 'delivery', -- 'delivery', 'pickup'
+    -- Адрес доставки (если нужен другой адрес, чем у пользователя)
+    shipping_address TEXT, -- полный адрес доставки в текстовом виде
+    -- Пункт самовывоза (если выбран pickup)
+    pickup_point TEXT, -- название и адрес пункта самовывоза
     tracking_number VARCHAR(255),
     notes TEXT,
     customer_notes TEXT, -- заметки клиента
-    admin_notes TEXT, -- заметки администратора
     shipped_at TIMESTAMP,
     delivered_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -283,15 +249,10 @@ CREATE INDEX IF NOT EXISTS idx_coupons_active ON coupons(is_active);
 CREATE INDEX IF NOT EXISTS idx_coupon_usage_coupon_id ON coupon_usage(coupon_id);
 CREATE INDEX IF NOT EXISTS idx_coupon_usage_user_id ON coupon_usage(user_id);
 
--- Индексы для совместимости
-CREATE INDEX IF NOT EXISTS idx_products_compatible_with ON products USING gin(compatible_with);
-
 -- Индексы для брендов (теперь в products)
 CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand);
 
 -- Индексы для JSONB полей
-CREATE INDEX IF NOT EXISTS idx_products_attributes_gin ON products USING gin(attributes);
-CREATE INDEX IF NOT EXISTS idx_products_stock_history_gin ON products USING gin(stock_history);
 CREATE INDEX IF NOT EXISTS idx_users_notifications_gin ON users USING gin(notifications);
 CREATE INDEX IF NOT EXISTS idx_reviews_helpful_votes_gin ON reviews USING gin(helpful_votes);
 
@@ -301,9 +262,7 @@ CREATE INDEX IF NOT EXISTS idx_products_brand_category ON products(brand, catego
 -- Полнотекстовый поиск по товарам
 CREATE INDEX IF NOT EXISTS idx_products_search ON products USING gin(to_tsvector('russian', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(short_description, '')));
 
--- Индексы для JSON полей
-CREATE INDEX IF NOT EXISTS idx_products_attributes ON products USING gin(attributes);
-CREATE INDEX IF NOT EXISTS idx_products_specifications ON products USING gin(specifications);
+-- Индексы для JSON полей удалены - поля больше не существуют
 
 -- =============================================
 -- НАЧАЛЬНЫЕ ДАННЫЕ
@@ -341,12 +300,7 @@ INSERT INTO categories (name, description, slug, sort_order) VALUES
 ('Игровые кресла', 'Кресла для геймеров', 'gaming-chairs', 21)
 ON CONFLICT (slug) DO NOTHING;
 
--- Вставка способов доставки
-INSERT INTO shipping_methods (name, description, cost, estimated_days_min, estimated_days_max, sort_order) VALUES 
-('Курьерская доставка', 'Быстрая курьерская доставка', 300.00, 1, 3, 1),
-('Самовывоз', 'Самовывоз из пункта выдачи', 0.00, 1, 1, 2),
-('Экспресс-доставка', 'Доставка в день заказа', 500.00, 1, 1, 3)
-ON CONFLICT DO NOTHING;
+-- Способы доставки теперь встроены в orders
 
 -- =============================================
 -- ТРИГГЕРЫ ДЛЯ АВТОМАТИЧЕСКОГО ОБНОВЛЕНИЯ
@@ -364,12 +318,12 @@ $$ language 'plpgsql';
 -- Применение триггеров к таблицам
 CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_addresses_updated_at BEFORE UPDATE ON addresses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Триггер для addresses удален - таблица больше не существует
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_cart_items_updated_at BEFORE UPDATE ON cart_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON reviews FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_coupons_updated_at BEFORE UPDATE ON coupons FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_shipping_methods_updated_at BEFORE UPDATE ON shipping_methods FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Триггер для shipping_methods удален - таблица больше не существует
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================
@@ -377,39 +331,39 @@ CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXE
 -- =============================================
 
 -- Создание тестового пользователя
-INSERT INTO users (email, password, first_name, last_name, phone, is_active, is_admin) VALUES 
-('admin@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Админ', 'Админов', '+7 (999) 123-45-67', true, true),
-('user@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Иван', 'Петров', '+7 (999) 765-43-21', true, false)
+INSERT INTO users (email, password, first_name, last_name, phone, gender, is_active, is_admin) VALUES 
+('admin@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Админ', 'Админов', '+7 (999) 123-45-67', 'male', true, true),
+('user@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Иван', 'Петров', '+7 (999) 765-43-21', 'male', true, false)
 ON CONFLICT (email) DO NOTHING;
 
 -- Создание тестовых товаров с разными брендами
-INSERT INTO products (name, description, short_description, price, compare_price, sku, stock, is_active, is_featured, is_new, weight, dimensions, brand, model, color, material, category_id, tags, attributes, specifications, compatible_with, meta_title, meta_description) VALUES 
+INSERT INTO products (name, description, short_description, price, compare_price, sku, stock, is_active, is_featured, is_new, weight, dimensions, brand, model, color, material, category_id, tags, meta_title, meta_description) VALUES 
 -- Чехлы для iPhone
-('Чехол Apple Silicone Case для iPhone 15 Pro', 'Официальный силиконовый чехол Apple с мягкой внутренней поверхностью и внешней поверхностью из силикона.', 'Официальный чехол Apple для iPhone 15 Pro', 4990.00, 5990.00, 'APPLE-CASE-IP15P-BLUE', 25, true, true, true, 0.05, '15.5x7.8x1.2 cm', 'Apple', 'Silicone Case', 'Синий', 'Силикон', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15 Pro', 'официальный', 'силикон'], '{"material": "silicone", "protection": "drop_protection", "wireless_charging": true}', '{"drop_protection": "2m", "wireless_charging": true, "magsafe": true}', ARRAY['iPhone 15 Pro', 'iPhone 15 Pro Max'], 'Чехол Apple для iPhone 15 Pro - Синий', 'Официальный силиконовый чехол Apple для iPhone 15 Pro с защитой от падений и поддержкой MagSafe'),
+('Чехол Apple Silicone Case для iPhone 15 Pro', 'Официальный силиконовый чехол Apple с мягкой внутренней поверхностью и внешней поверхностью из силикона.', 'Официальный чехол Apple для iPhone 15 Pro', 4990.00, 5990.00, 'APPLE-CASE-IP15P-BLUE', 25, true, true, true, 0.05, '15.5x7.8x1.2 cm', 'Apple', 'Silicone Case', 'Синий', 'Силикон', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15 Pro', 'официальный', 'силикон'], 'Чехол Apple для iPhone 15 Pro - Синий', 'Официальный силиконовый чехол Apple для iPhone 15 Pro с защитой от падений и поддержкой MagSafe'),
 
-('Чехол Spigen Ultra Hybrid для iPhone 15', 'Прозрачный чехол Spigen с защитой от падений и поддержкой беспроводной зарядки.', 'Прозрачный чехол Spigen для iPhone 15', 1990.00, 2490.00, 'SPIGEN-UH-IP15-CLEAR', 50, true, false, false, 0.08, '15.0x7.6x1.0 cm', 'Spigen', 'Ultra Hybrid', 'Прозрачный', 'TPU + Поликарбонат', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15', 'прозрачный', 'защита'], '{"material": "tpu_polycarbonate", "protection": "drop_protection", "wireless_charging": true}', '{"drop_protection": "1.2m", "wireless_charging": true, "magsafe": true}', ARRAY['iPhone 15', 'iPhone 15 Plus'], 'Чехол Spigen для iPhone 15 - Прозрачный', 'Прозрачный чехол Spigen Ultra Hybrid для iPhone 15 с защитой от падений'),
+('Чехол Spigen Ultra Hybrid для iPhone 15', 'Прозрачный чехол Spigen с защитой от падений и поддержкой беспроводной зарядки.', 'Прозрачный чехол Spigen для iPhone 15', 1990.00, 2490.00, 'SPIGEN-UH-IP15-CLEAR', 50, true, false, false, 0.08, '15.0x7.6x1.0 cm', 'Spigen', 'Ultra Hybrid', 'Прозрачный', 'TPU + Поликарбонат', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15', 'прозрачный', 'защита'], 'Чехол Spigen для iPhone 15 - Прозрачный', 'Прозрачный чехол Spigen Ultra Hybrid для iPhone 15 с защитой от падений'),
 
 -- Зарядные устройства
-('Зарядное устройство Apple 20W USB-C', 'Официальное зарядное устройство Apple мощностью 20W с разъемом USB-C.', 'Зарядка Apple 20W USB-C', 2990.00, 3990.00, 'APPLE-20W-USB-C', 30, true, true, false, 0.12, '5.6x4.2x2.7 cm', 'Apple', '20W USB-C Power Adapter', 'Белый', 'Пластик', (SELECT id FROM categories WHERE slug = 'chargers'), ARRAY['iPhone', 'iPad', 'быстрая зарядка'], '{"power": "20W", "connector": "USB-C", "fast_charging": true}', '{"power": "20W", "output": "5V/3A, 9V/2.22A", "input": "100-240V", "connector": "USB-C"}', ARRAY['iPhone 12', 'iPhone 13', 'iPhone 14', 'iPhone 15', 'iPad'], 'Зарядка Apple 20W USB-C', 'Официальное зарядное устройство Apple 20W с разъемом USB-C для быстрой зарядки'),
+('Зарядное устройство Apple 20W USB-C', 'Официальное зарядное устройство Apple мощностью 20W с разъемом USB-C.', 'Зарядка Apple 20W USB-C', 2990.00, 3990.00, 'APPLE-20W-USB-C', 30, true, true, false, 0.12, '5.6x4.2x2.7 cm', 'Apple', '20W USB-C Power Adapter', 'Белый', 'Пластик', (SELECT id FROM categories WHERE slug = 'chargers'), ARRAY['iPhone', 'iPad', 'быстрая зарядка'], 'Зарядка Apple 20W USB-C', 'Официальное зарядное устройство Apple 20W с разъемом USB-C для быстрой зарядки'),
 
-('Беспроводная зарядка Anker PowerWave 7.5W', 'Беспроводная зарядная станция Anker с поддержкой быстрой зарядки до 7.5W.', 'Беспроводная зарядка Anker 7.5W', 2490.00, 2990.00, 'ANKER-PW-7.5W', 20, true, false, true, 0.15, '10.0x10.0x1.5 cm', 'Anker', 'PowerWave 7.5W', 'Черный', 'Пластик + Силикон', (SELECT id FROM categories WHERE slug = 'wireless-chargers'), ARRAY['беспроводная зарядка', 'Qi', 'быстрая зарядка'], '{"power": "7.5W", "standard": "Qi", "fast_charging": true}', '{"power": "7.5W", "standard": "Qi", "input": "5V/2A", "efficiency": "80%"}', ARRAY['iPhone 8', 'iPhone X', 'iPhone 11', 'iPhone 12', 'iPhone 13', 'iPhone 14', 'iPhone 15'], 'Беспроводная зарядка Anker 7.5W', 'Беспроводная зарядная станция Anker PowerWave 7.5W с поддержкой Qi стандарта'),
+('Беспроводная зарядка Anker PowerWave 7.5W', 'Беспроводная зарядная станция Anker с поддержкой быстрой зарядки до 7.5W.', 'Беспроводная зарядка Anker 7.5W', 2490.00, 2990.00, 'ANKER-PW-7.5W', 20, true, false, true, 0.15, '10.0x10.0x1.5 cm', 'Anker', 'PowerWave 7.5W', 'Черный', 'Пластик + Силикон', (SELECT id FROM categories WHERE slug = 'wireless-chargers'), ARRAY['беспроводная зарядка', 'Qi', 'быстрая зарядка'], 'Беспроводная зарядка Anker 7.5W', 'Беспроводная зарядная станция Anker PowerWave 7.5W с поддержкой Qi стандарта'),
 
 -- Наушники
-('Наушники Apple AirPods Pro 2', 'Беспроводные наушники Apple AirPods Pro 2-го поколения с активным шумоподавлением.', 'AirPods Pro 2 с шумоподавлением', 19990.00, 22990.00, 'APPLE-AIRPODS-PRO-2', 15, true, true, true, 0.06, '6.0x4.5x2.1 cm', 'Apple', 'AirPods Pro 2', 'Белый', 'Пластик', (SELECT id FROM categories WHERE slug = 'headphones'), ARRAY['беспроводные', 'шумоподавление', 'пространственное аудио'], '{"type": "wireless", "noise_cancellation": true, "spatial_audio": true}', '{"driver": "динамический", "frequency": "20Hz-20kHz", "battery": "6h", "case_battery": "30h"}', ARRAY['iPhone', 'iPad', 'Mac'], 'Apple AirPods Pro 2', 'Беспроводные наушники Apple AirPods Pro 2 с активным шумоподавлением и пространственным аудио'),
+('Наушники Apple AirPods Pro 2', 'Беспроводные наушники Apple AirPods Pro 2-го поколения с активным шумоподавлением.', 'AirPods Pro 2 с шумоподавлением', 19990.00, 22990.00, 'APPLE-AIRPODS-PRO-2', 15, true, true, true, 0.06, '6.0x4.5x2.1 cm', 'Apple', 'AirPods Pro 2', 'Белый', 'Пластик', (SELECT id FROM categories WHERE slug = 'headphones'), ARRAY['беспроводные', 'шумоподавление', 'пространственное аудио'], 'Apple AirPods Pro 2', 'Беспроводные наушники Apple AirPods Pro 2 с активным шумоподавлением и пространственным аудио'),
 
-('Наушники JBL Tune 760NC', 'Беспроводные наушники JBL с активным шумоподавлением и 50-часовым временем работы.', 'JBL Tune 760NC с шумоподавлением', 8990.00, 10990.00, 'JBL-TUNE-760NC', 25, true, false, false, 0.25, '20.0x18.0x8.0 cm', 'JBL', 'Tune 760NC', 'Черный', 'Пластик + Металл', (SELECT id FROM categories WHERE slug = 'headphones'), ARRAY['беспроводные', 'шумоподавление', 'долгая работа'], '{"type": "wireless", "noise_cancellation": true, "battery": "50h"}', '{"driver": "40mm", "frequency": "20Hz-20kHz", "battery": "50h", "charging": "USB-C"}', ARRAY['смартфон', 'планшет', 'ноутбук'], 'JBL Tune 760NC', 'Беспроводные наушники JBL Tune 760NC с активным шумоподавлением и 50-часовым временем работы'),
+('Наушники JBL Tune 760NC', 'Беспроводные наушники JBL с активным шумоподавлением и 50-часовым временем работы.', 'JBL Tune 760NC с шумоподавлением', 8990.00, 10990.00, 'JBL-TUNE-760NC', 25, true, false, false, 0.25, '20.0x18.0x8.0 cm', 'JBL', 'Tune 760NC', 'Черный', 'Пластик + Металл', (SELECT id FROM categories WHERE slug = 'headphones'), ARRAY['беспроводные', 'шумоподавление', 'долгая работа'], 'JBL Tune 760NC', 'Беспроводные наушники JBL Tune 760NC с активным шумоподавлением и 50-часовым временем работы'),
 
 -- Защитные стекла
-('Защитное стекло Belkin ScreenForce для iPhone 15', 'Защитное стекло Belkin с технологией ScreenForce для iPhone 15.', 'Защитное стекло Belkin для iPhone 15', 1990.00, 2490.00, 'BELKIN-SF-IP15', 40, true, false, true, 0.02, '15.0x7.6x0.3 cm', 'Belkin', 'ScreenForce', 'Прозрачный', 'Закаленное стекло', (SELECT id FROM categories WHERE slug = 'screen-protectors'), ARRAY['iPhone 15', 'защитное стекло', '9H'], '{"material": "tempered_glass", "hardness": "9H", "thickness": "0.3mm"}', '{"hardness": "9H", "thickness": "0.3mm", "clarity": "99%", "touch_sensitivity": "100%"}', ARRAY['iPhone 15', 'iPhone 15 Plus'], 'Защитное стекло Belkin для iPhone 15', 'Защитное стекло Belkin ScreenForce для iPhone 15 с твердостью 9H'),
+('Защитное стекло Belkin ScreenForce для iPhone 15', 'Защитное стекло Belkin с технологией ScreenForce для iPhone 15.', 'Защитное стекло Belkin для iPhone 15', 1990.00, 2490.00, 'BELKIN-SF-IP15', 40, true, false, true, 0.02, '15.0x7.6x0.3 cm', 'Belkin', 'ScreenForce', 'Прозрачный', 'Закаленное стекло', (SELECT id FROM categories WHERE slug = 'screen-protectors'), ARRAY['iPhone 15', 'защитное стекло', '9H'], 'Защитное стекло Belkin для iPhone 15', 'Защитное стекло Belkin ScreenForce для iPhone 15 с твердостью 9H'),
 
 -- Кабели
-('USB-C кабель UGREEN 1м', 'USB-C кабель UGREEN длиной 1 метр с поддержкой быстрой зарядки и передачи данных.', 'USB-C кабель UGREEN 1м', 590.00, 790.00, 'UGREEN-USB-C-1M', 100, true, false, false, 0.05, '100.0x0.5x0.3 cm', 'UGREEN', 'USB-C Cable', 'Черный', 'Медь + Пластик', (SELECT id FROM categories WHERE slug = 'cables-adapters'), ARRAY['USB-C', 'быстрая зарядка', 'передача данных'], '{"length": "1m", "connector": "USB-C", "fast_charging": true}', '{"length": "1m", "connector": "USB-C", "power": "100W", "data": "USB 2.0"}', ARRAY['смартфон', 'планшет', 'ноутбук'], 'USB-C кабель UGREEN 1м', 'USB-C кабель UGREEN длиной 1 метр с поддержкой быстрой зарядки'),
+('USB-C кабель UGREEN 1м', 'USB-C кабель UGREEN длиной 1 метр с поддержкой быстрой зарядки и передачи данных.', 'USB-C кабель UGREEN 1м', 590.00, 790.00, 'UGREEN-USB-C-1M', 100, true, false, false, 0.05, '100.0x0.5x0.3 cm', 'UGREEN', 'USB-C Cable', 'Черный', 'Медь + Пластик', (SELECT id FROM categories WHERE slug = 'cables-adapters'), ARRAY['USB-C', 'быстрая зарядка', 'передача данных'], 'USB-C кабель UGREEN 1м', 'USB-C кабель UGREEN длиной 1 метр с поддержкой быстрой зарядки'),
 
 -- Power Bank
-('Портативный аккумулятор Anker PowerCore 10000', 'Портативный аккумулятор Anker PowerCore емкостью 10000 мАч с быстрой зарядкой.', 'PowerBank Anker 10000 мАч', 2990.00, 3490.00, 'ANKER-PC-10000', 35, true, true, false, 0.2, '9.0x6.0x2.2 cm', 'Anker', 'PowerCore 10000', 'Черный', 'Пластик', (SELECT id FROM categories WHERE slug = 'power-banks'), ARRAY['10000 мАч', 'быстрая зарядка', 'компактный'], '{"capacity": "10000mAh", "fast_charging": true, "ports": 2}', '{"capacity": "10000mAh", "output": "5V/2A", "input": "5V/2A", "ports": 2}', ARRAY['смартфон', 'планшет'], 'PowerBank Anker 10000 мАч', 'Портативный аккумулятор Anker PowerCore емкостью 10000 мАч с быстрой зарядкой'),
+('Портативный аккумулятор Anker PowerCore 10000', 'Портативный аккумулятор Anker PowerCore емкостью 10000 мАч с быстрой зарядкой.', 'PowerBank Anker 10000 мАч', 2990.00, 3490.00, 'ANKER-PC-10000', 35, true, true, false, 0.2, '9.0x6.0x2.2 cm', 'Anker', 'PowerCore 10000', 'Черный', 'Пластик', (SELECT id FROM categories WHERE slug = 'power-banks'), ARRAY['10000 мАч', 'быстрая зарядка', 'компактный'], 'PowerBank Anker 10000 мАч', 'Портативный аккумулятор Anker PowerCore емкостью 10000 мАч с быстрой зарядкой'),
 
 -- Подставки
-('Подставка для телефона Baseus Metal Stand', 'Металлическая подставка Baseus для телефона с регулируемым углом наклона.', 'Металлическая подставка Baseus', 1290.00, 1590.00, 'BASEUS-MS-PHONE', 60, true, false, false, 0.15, '15.0x8.0x2.0 cm', 'Baseus', 'Metal Stand', 'Серебристый', 'Алюминий', (SELECT id FROM categories WHERE slug = 'stands-holders'), ARRAY['подставка', 'металлическая', 'регулируемая'], '{"material": "aluminum", "adjustable": true, "angle": "0-60°"}', '{"material": "aluminum", "angle": "0-60°", "weight": "150g", "compatibility": "universal"}', ARRAY['смартфон', 'планшет'], 'Подставка Baseus для телефона', 'Металлическая подставка Baseus для телефона с регулируемым углом наклона')
+('Подставка для телефона Baseus Metal Stand', 'Металлическая подставка Baseus для телефона с регулируемым углом наклона.', 'Металлическая подставка Baseus', 1290.00, 1590.00, 'BASEUS-MS-PHONE', 60, true, false, false, 0.15, '15.0x8.0x2.0 cm', 'Baseus', 'Metal Stand', 'Серебристый', 'Алюминий', (SELECT id FROM categories WHERE slug = 'stands-holders'), ARRAY['подставка', 'металлическая', 'регулируемая'], 'Подставка Baseus для телефона', 'Металлическая подставка Baseus для телефона с регулируемым углом наклона')
 ON CONFLICT (sku) DO NOTHING;
 
 -- Создание тестовых изображений для товаров

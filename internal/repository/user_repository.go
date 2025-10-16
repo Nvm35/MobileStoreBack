@@ -59,17 +59,84 @@ func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *userRepository) Update(user *models.User) error {
-	// Обновляем в базе данных
-	if err := r.db.Save(user).Error; err != nil {
-		return err
+func (r *userRepository) UpdateProfile(userID string, firstName *string, lastName *string, phone *string, dateOfBirth *string, gender *string) (*models.User, error) {
+	var user models.User
+	err := r.db.Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	
+	if firstName != nil {
+		user.FirstName = *firstName
+	}
+	if lastName != nil {
+		user.LastName = *lastName
+	}
+	if phone != nil {
+		user.Phone = *phone
+	}
+	if dateOfBirth != nil {
+		if t, err := time.Parse("2006-01-02", *dateOfBirth); err == nil {
+			user.DateOfBirth = &t
+		}
+	}
+	if gender != nil {
+		user.Gender = *gender
+	}
+	
+	err = r.db.Save(&user).Error
+	if err != nil {
+		return nil, err
 	}
 
 	// Удаляем из кэша
 	cacheKey := fmt.Sprintf("user:%s", user.ID.String())
 	r.redis.Del(context.Background(), cacheKey)
 
-	return nil
+	return &user, nil
+}
+
+func (r *userRepository) Update(id string, firstName *string, lastName *string, phone *string, dateOfBirth *string, gender *string, isActive *bool, isAdmin *bool) (*models.User, error) {
+	var user models.User
+	err := r.db.Where("id = ?", id).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	
+	if firstName != nil {
+		user.FirstName = *firstName
+	}
+	if lastName != nil {
+		user.LastName = *lastName
+	}
+	if phone != nil {
+		user.Phone = *phone
+	}
+	if dateOfBirth != nil {
+		if t, err := time.Parse("2006-01-02", *dateOfBirth); err == nil {
+			user.DateOfBirth = &t
+		}
+	}
+	if gender != nil {
+		user.Gender = *gender
+	}
+	if isActive != nil {
+		user.IsActive = *isActive
+	}
+	if isAdmin != nil {
+		user.IsAdmin = *isAdmin
+	}
+	
+	err = r.db.Save(&user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Удаляем из кэша
+	cacheKey := fmt.Sprintf("user:%s", user.ID.String())
+	r.redis.Del(context.Background(), cacheKey)
+
+	return &user, nil
 }
 
 func (r *userRepository) Delete(id string) error {
