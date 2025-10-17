@@ -27,9 +27,10 @@ func GetProducts(productService *services.ProductService) gin.HandlerFunc {
 
 func GetProduct(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
+		identifier := c.Param("id") // Может быть как ID, так и slug
 		
-		product, err := productService.GetByID(id)
+		// Пробуем найти по slug или ID
+		product, err := productService.GetBySlugOrID(identifier)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 			return

@@ -11,6 +11,7 @@ import (
 type Product struct {
 	ID               uuid.UUID       `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Name             string          `json:"name" gorm:"not null" validate:"required,min=2"`
+	Slug             string          `json:"slug" gorm:"uniqueIndex;not null" validate:"required"`
 	Description      string          `json:"description" gorm:"type:text"`
 	ShortDescription string          `json:"short_description" gorm:"type:varchar(500)"`
 	Price            float64         `json:"price" gorm:"not null" validate:"required,min=0"`

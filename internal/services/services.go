@@ -14,6 +14,7 @@ type Services struct {
 	Wishlist  *WishlistService
 	Review    *ReviewService
 	Coupon    *CouponService
+	Category  *CategoryService
 	// AddressService удален - адреса теперь встроены в User
 }
 
@@ -27,6 +28,7 @@ func New(repos *repository.Repository, cfg *config.Config) *Services {
 		Wishlist: NewWishlistService(repos.Wishlist),
 		Review:   NewReviewService(repos.Review),
 		Coupon:   NewCouponService(repos.Coupon),
+		Category: NewCategoryService(repos.Category),
 		// Address:  NewAddressService(repos.Address), // удален
 	}
 }

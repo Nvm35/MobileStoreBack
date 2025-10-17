@@ -16,6 +16,7 @@ type Repository struct {
 	Wishlist WishlistRepository
 	Review   ReviewRepository
 	Coupon   CouponRepository
+	Category CategoryRepository
 	// AddressRepository удален - адреса теперь встроены в User
 }
 
@@ -30,8 +31,9 @@ type UserRepository interface {
 }
 
 type ProductRepository interface {
-	Create(name string, description string, shortDescription string, price float64, comparePrice *float64, sku string, stock int, isActive bool, isFeatured bool, isNew bool, weight *float64, dimensions string, brand string, model string, color string, material string, categoryID string, tags []string, metaTitle string, metaDescription string) (*models.Product, error)
+	Create(name string, slug string, description string, shortDescription string, price float64, comparePrice *float64, sku string, stock int, isActive bool, isFeatured bool, isNew bool, weight *float64, dimensions string, brand string, model string, color string, material string, categoryID string, tags []string, metaTitle string, metaDescription string) (*models.Product, error)
 	GetByID(id string) (*models.Product, error)
+	GetBySlug(slug string) (*models.Product, error)
 	GetBySKU(sku string) (*models.Product, error)
 	Update(id string, name *string, description *string, shortDescription *string, price *float64, comparePrice *float64, stock *int, isActive *bool, isFeatured *bool, isNew *bool, weight *float64, dimensions *string, brand *string, model *string, color *string, material *string, categoryID *string, tags []string, metaTitle *string, metaDescription *string) (*models.Product, error)
 	Delete(id string) error
@@ -110,6 +112,7 @@ func New(db *gorm.DB, redis *redis.Client) *Repository {
 		Wishlist: NewWishlistRepository(db, redis),
 		Review:   NewReviewRepository(db, redis),
 		Coupon:   NewCouponRepository(db, redis),
+		Category: NewCategoryRepository(db, redis),
 		// Address:  NewAddressRepository(db, redis), // удален
 	}
 }

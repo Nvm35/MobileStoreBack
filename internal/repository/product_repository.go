@@ -25,11 +25,12 @@ func NewProductRepository(db *gorm.DB, redis *redis.Client) ProductRepository {
 	}
 }
 
-func (r *productRepository) Create(name string, description string, shortDescription string, price float64, comparePrice *float64, sku string, stock int, isActive bool, isFeatured bool, isNew bool, weight *float64, dimensions string, brand string, model string, color string, material string, categoryID string, tags []string, metaTitle string, metaDescription string) (*models.Product, error) {
+func (r *productRepository) Create(name string, slug string, description string, shortDescription string, price float64, comparePrice *float64, sku string, stock int, isActive bool, isFeatured bool, isNew bool, weight *float64, dimensions string, brand string, model string, color string, material string, categoryID string, tags []string, metaTitle string, metaDescription string) (*models.Product, error) {
 	categoryUUID, _ := uuid.Parse(categoryID)
 	
 	product := models.Product{
 		Name:             name,
+		Slug:             slug,
 		Description:      description,
 		ShortDescription: shortDescription,
 		Price:            price,
@@ -204,4 +205,29 @@ func (r *productRepository) GetByCategory(categoryID string, limit, offset int) 
 		return nil, err
 	}
 	return products, nil
+}
+
+// GetBySlug получает товар по slug
+func (r *productRepository) GetBySlug(slug string) (*models.Product, error) {
+	// Попробуем получить из кэша
+	cacheKey := fmt.Sprintf("product:slug:%s", slug)
+	cached, err := r.redis.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		var product models.Product
+		if err := json.Unmarshal([]byte(cached), &product); err == nil {
+			return &product, nil
+		}
+	}
+
+	// Получаем из базы данных
+	var product models.Product
+	if err := r.db.Preload("Category").Preload("Images").First(&product, "slug = ?", slug).Error; err != nil {
+		return nil, err
+	}
+
+	// Сохраняем в кэш
+	productJSON, _ := json.Marshal(product)
+	r.redis.Set(context.Background(), cacheKey, productJSON, time.Hour)
+
+	return &product, nil
 }

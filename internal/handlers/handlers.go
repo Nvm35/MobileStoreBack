@@ -9,135 +9,208 @@ import (
 )
 
 func SetupRoutes(router *gin.Engine, services *services.Services, cfg *config.Config) {
-	// API группа
 	api := router.Group("/api")
 	{
-		// Публичные маршруты
-		public := api.Group("/")
-		{
-			// Аутентификация
-			auth := public.Group("/auth")
-			{
-				auth.POST("/register", Register(services.Auth))
-				auth.POST("/login", Login(services.Auth))
-			}
+		setupPublicRoutes(api, services)
+		setupProtectedRoutes(api, services)
+		setupAdminRoutes(api, services)
+	}
+}
 
-			// Продукты (публичные)
-			products := public.Group("/products")
-			{
-				products.GET("/", GetProducts(services.Product))
-				products.GET("/:id", GetProduct(services.Product))
-				products.GET("/search", SearchProducts(services.Product))
-				products.GET("/category/:category_id", GetProductsByCategory(services.Product))
-				products.GET("/:id/reviews", GetProductReviews(services.Review))
-			}
-		}
+// ============================================================================
+// ПУБЛИЧНЫЕ МАРШРУТЫ (без аутентификации)
+// ============================================================================
+func setupPublicRoutes(api *gin.RouterGroup, services *services.Services) {
+	public := api.Group("/")
+	{
+		// Аутентификация
+		setupAuthRoutes(public, services)
+		
+		// Каталог товаров
+		setupCatalogRoutes(public, services)
+	}
+}
 
-		// Защищенные маршруты
-		protected := api.Group("/")
-		protected.Use(middleware.AuthRequired(services.Auth))
-		{
-			// Пользователи
-			users := protected.Group("/users")
-			{
-				users.GET("/profile", GetProfile(services.User))
-				users.PUT("/profile", UpdateProfile(services.User))
-			}
+func setupAuthRoutes(router *gin.RouterGroup, services *services.Services) {
+	auth := router.Group("/auth")
+	{
+		auth.POST("/register", Register(services.Auth))
+		auth.POST("/login", Login(services.Auth))
+	}
+}
 
-			// Адреса теперь встроены в профиль пользователя
+func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
+	// Категории (публичные)
+	categories := router.Group("/categories")
+	{
+		categories.GET("/", GetCategories(services.Category))
+		categories.GET("/:slug", GetCategoryBySlug(services.Category))
+		categories.GET("/:slug/products", GetCategoryProductsBySlug(services.Category))
+	}
 
-			// Заказы
-			orders := protected.Group("/orders")
-			{
-				orders.POST("/", CreateOrder(services.Order))
-				orders.GET("/", GetUserOrders(services.Order))
-				orders.GET("/:id", GetOrder(services.Order))
-				orders.PUT("/:id", UpdateOrder(services.Order))
-			}
+	// Продукты (публичные)
+	products := router.Group("/products")
+	{
+		products.GET("/", GetProducts(services.Product))
+		products.GET("/:id", GetProduct(services.Product))
+		products.GET("/search", SearchProducts(services.Product))
+		products.GET("/:id/reviews", GetProductReviews(services.Review))
+	}
+}
 
-			// Корзина
-			cart := protected.Group("/cart")
-			{
-				cart.GET("/", GetCart(services.Cart))
-				cart.POST("/", AddToCart(services.Cart))
-				cart.PUT("/:id", UpdateCartItem(services.Cart))
-				cart.DELETE("/:id", RemoveFromCart(services.Cart))
-				cart.DELETE("/", ClearCart(services.Cart))
-				cart.GET("/count", GetCartCount(services.Cart))
-			}
+// ============================================================================
+// ЗАЩИЩЕННЫЕ МАРШРУТЫ (требуют аутентификации)
+// ============================================================================
+func setupProtectedRoutes(api *gin.RouterGroup, services *services.Services) {
+	protected := api.Group("/")
+	protected.Use(middleware.AuthRequired(services.Auth))
+	{
+		// Профиль пользователя
+		setupUserRoutes(protected, services)
+		
+		// Покупки
+		setupShoppingRoutes(protected, services)
+		
+		// Отзывы и рейтинги
+		setupReviewRoutes(protected, services)
+		
+		// Промокоды
+		setupCouponRoutes(protected, services)
+	}
+}
 
-			// Избранное
-			wishlist := protected.Group("/wishlist")
-			{
-				wishlist.GET("/", GetWishlist(services.Wishlist))
-				wishlist.POST("/", AddToWishlist(services.Wishlist))
-				wishlist.DELETE("/:id", RemoveFromWishlist(services.Wishlist))
-				wishlist.DELETE("/", ClearWishlist(services.Wishlist))
-				wishlist.GET("/check/:product_id", IsInWishlist(services.Wishlist))
-			}
+func setupUserRoutes(router *gin.RouterGroup, services *services.Services) {
+	users := router.Group("/users")
+	{
+		users.GET("/profile", GetProfile(services.User))
+		users.PUT("/profile", UpdateProfile(services.User))
+	}
+}
 
-			// Отзывы
-			reviews := protected.Group("/reviews")
-			{
-				reviews.POST("/", CreateReview(services.Review))
-				reviews.GET("/my", GetUserReviews(services.Review))
-				reviews.PUT("/:id", UpdateReview(services.Review))
-				reviews.DELETE("/:id", DeleteReview(services.Review))
-				reviews.POST("/:id/vote", VoteReview(services.Review))
-			}
+func setupShoppingRoutes(router *gin.RouterGroup, services *services.Services) {
+	// Заказы
+	orders := router.Group("/orders")
+	{
+		orders.POST("/", CreateOrder(services.Order))
+		orders.GET("/", GetUserOrders(services.Order))
+		orders.GET("/:id", GetOrder(services.Order))
+		orders.PUT("/:id", UpdateOrder(services.Order))
+	}
 
-			// Промокоды
-			coupons := protected.Group("/coupons")
-			{
-				coupons.GET("/", GetCoupons(services.Coupon))
-				coupons.GET("/:id", GetCoupon(services.Coupon))
-				coupons.POST("/validate", ValidateCoupon(services.Coupon))
-			}
-		}
+	// Корзина
+	cart := router.Group("/cart")
+	{
+		cart.GET("/", GetCart(services.Cart))
+		cart.POST("/", AddToCart(services.Cart))
+		cart.PUT("/:id", UpdateCartItem(services.Cart))
+		cart.DELETE("/:id", RemoveFromCart(services.Cart))
+		cart.DELETE("/", ClearCart(services.Cart))
+		cart.GET("/count", GetCartCount(services.Cart))
+	}
 
-		// Админские маршруты
-		admin := api.Group("/admin")
-		admin.Use(middleware.AdminRequired(services.Auth))
-		{
-			// Управление пользователями
-			adminUsers := admin.Group("/users")
-			{
-				adminUsers.GET("/", GetUsers(services.User))
-				adminUsers.GET("/:id", GetUser(services.User))
-				adminUsers.PUT("/:id", UpdateUser(services.User))
-				adminUsers.DELETE("/:id", DeleteUser(services.User))
-			}
+	// Избранное
+	wishlist := router.Group("/wishlist")
+	{
+		wishlist.GET("/", GetWishlist(services.Wishlist))
+		wishlist.POST("/", AddToWishlist(services.Wishlist))
+		wishlist.DELETE("/:id", RemoveFromWishlist(services.Wishlist))
+		wishlist.DELETE("/", ClearWishlist(services.Wishlist))
+		wishlist.GET("/check/:product_id", IsInWishlist(services.Wishlist))
+	}
+}
 
-			// Управление продуктами
-			adminProducts := admin.Group("/products")
-			{
-				adminProducts.POST("/", CreateProduct(services.Product))
-				adminProducts.PUT("/:id", UpdateProduct(services.Product))
-				adminProducts.DELETE("/:id", DeleteProduct(services.Product))
-			}
+func setupReviewRoutes(router *gin.RouterGroup, services *services.Services) {
+	reviews := router.Group("/reviews")
+	{
+		reviews.POST("/", CreateReview(services.Review))
+		reviews.GET("/my", GetUserReviews(services.Review))
+		reviews.PUT("/:id", UpdateReview(services.Review))
+		reviews.DELETE("/:id", DeleteReview(services.Review))
+		reviews.POST("/:id/vote", VoteReview(services.Review))
+	}
+}
 
-			// Управление заказами
-			adminOrders := admin.Group("/orders")
-			{
-				adminOrders.GET("/", GetAllOrders(services.Order))
-				adminOrders.PUT("/:id/status", UpdateOrderStatus(services.Order))
-			}
+func setupCouponRoutes(router *gin.RouterGroup, services *services.Services) {
+	coupons := router.Group("/coupons")
+	{
+		coupons.GET("/", GetCoupons(services.Coupon))
+		coupons.GET("/:id", GetCoupon(services.Coupon))
+		coupons.POST("/validate", ValidateCoupon(services.Coupon))
+	}
+}
 
-			// Управление отзывами
-			adminReviews := admin.Group("/reviews")
-			{
-				adminReviews.GET("/", GetAllReviews(services.Review))
-				adminReviews.PUT("/:id/approve", ApproveReview(services.Review))
-			}
+// ============================================================================
+// АДМИНСКИЕ МАРШРУТЫ (требуют админских прав)
+// ============================================================================
+func setupAdminRoutes(api *gin.RouterGroup, services *services.Services) {
+	admin := api.Group("/admin")
+	admin.Use(middleware.AdminRequired(services.Auth))
+	{
+		// Управление пользователями
+		setupAdminUserRoutes(admin, services)
+		
+		// Управление каталогом
+		setupAdminCatalogRoutes(admin, services)
+		
+		// Управление заказами
+		setupAdminOrderRoutes(admin, services)
+		
+		// Управление контентом
+		setupAdminContentRoutes(admin, services)
+	}
+}
 
-			// Управление промокодами
-			adminCoupons := admin.Group("/coupons")
-			{
-				adminCoupons.POST("/", CreateCoupon(services.Coupon))
-				adminCoupons.PUT("/:id", UpdateCoupon(services.Coupon))
-				adminCoupons.DELETE("/:id", DeleteCoupon(services.Coupon))
-				adminCoupons.GET("/:id/usage", GetCouponUsage(services.Coupon))
-			}
-		}
+func setupAdminUserRoutes(router *gin.RouterGroup, services *services.Services) {
+	users := router.Group("/users")
+	{
+		users.GET("/", GetUsers(services.User))
+		users.GET("/:id", GetUser(services.User))
+		users.PUT("/:id", UpdateUser(services.User))
+		users.DELETE("/:id", DeleteUser(services.User))
+	}
+}
+
+func setupAdminCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
+	// Управление продуктами
+	products := router.Group("/products")
+	{
+		products.POST("/", CreateProduct(services.Product))
+		products.PUT("/:id", UpdateProduct(services.Product))
+		products.DELETE("/:id", DeleteProduct(services.Product))
+	}
+
+	// Управление категориями
+	categories := router.Group("/categories")
+	{
+		categories.POST("/", CreateCategory(services.Category))
+		categories.GET("/:id", GetCategory(services.Category))
+		categories.PUT("/:id", UpdateCategory(services.Category))
+		categories.DELETE("/:id", DeleteCategory(services.Category))
+	}
+}
+
+func setupAdminOrderRoutes(router *gin.RouterGroup, services *services.Services) {
+	orders := router.Group("/orders")
+	{
+		orders.GET("/", GetAllOrders(services.Order))
+		orders.PUT("/:id/status", UpdateOrderStatus(services.Order))
+	}
+}
+
+func setupAdminContentRoutes(router *gin.RouterGroup, services *services.Services) {
+	// Управление отзывами
+	reviews := router.Group("/reviews")
+	{
+		reviews.GET("/", GetAllReviews(services.Review))
+		reviews.PUT("/:id/approve", ApproveReview(services.Review))
+	}
+
+	// Управление промокодами
+	coupons := router.Group("/coupons")
+	{
+		coupons.POST("/", CreateCoupon(services.Coupon))
+		coupons.PUT("/:id", UpdateCoupon(services.Coupon))
+		coupons.DELETE("/:id", DeleteCoupon(services.Coupon))
+		coupons.GET("/:id/usage", GetCouponUsage(services.Coupon))
 	}
 }
