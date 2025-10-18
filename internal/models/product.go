@@ -65,6 +65,7 @@ type ProductVariant struct {
 type Warehouse struct {
 	ID          uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Name        string    `json:"name" gorm:"not null" validate:"required,min=2"`
+	Slug        string    `json:"slug" gorm:"uniqueIndex;not null" validate:"required"`
 	Address     string    `json:"address" gorm:"not null" validate:"required"`
 	City        string    `json:"city" gorm:"not null" validate:"required"`
 	Phone       string    `json:"phone" gorm:"type:varchar(20)"`

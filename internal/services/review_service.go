@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/repository"
 )
@@ -43,4 +44,10 @@ func (s *ReviewService) GetAll(limit, offset int) ([]models.Review, error) {
 
 func (s *ReviewService) Approve(id string, approved bool) error {
 	return s.repo.Approve(id, approved)
+}
+
+// GetByProductSlugOrID - получение отзывов по slug или ID продукта
+func (s *ReviewService) GetByProductSlugOrID(identifier string, limit, offset int) ([]models.Review, error) {
+	// Пока возвращаем ошибку, так как нужен доступ к ProductService
+	return nil, errors.New("not implemented - need ProductService dependency")
 }

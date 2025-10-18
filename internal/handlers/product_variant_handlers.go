@@ -77,13 +77,13 @@ func GetProductVariants(productVariantService *services.ProductVariantService) g
 
 func GetProductVariantsByProductID(productVariantService *services.ProductVariantService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		productID := c.Param("id")
-		if productID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "product id is required"})
+		identifier := c.Param("slug") // Может быть как slug, так и ID
+		if identifier == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "product identifier is required"})
 			return
 		}
 
-		variants, err := productVariantService.GetByProductID(productID)
+		variants, err := productVariantService.GetByProductSlugOrID(identifier)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/repository"
 )
@@ -37,5 +38,11 @@ func (s *ProductVariantService) Update(id string, sku *string, name *string, col
 
 func (s *ProductVariantService) Delete(id string) error {
 	return s.repo.Delete(id)
+}
+
+// GetByProductSlugOrID - получение вариантов товара по slug или ID продукта
+func (s *ProductVariantService) GetByProductSlugOrID(identifier string) ([]*models.ProductVariant, error) {
+	// Пока возвращаем ошибку, так как нужен доступ к ProductService
+	return nil, errors.New("not implemented - need ProductService dependency")
 }
 

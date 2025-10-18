@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE TABLE IF NOT EXISTS warehouses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL, -- название склада/филиала
+    slug VARCHAR(255) NOT NULL UNIQUE, -- slug для URL
     address TEXT NOT NULL, -- адрес склада
     city VARCHAR(255) NOT NULL, -- город
     phone VARCHAR(20), -- телефон склада
@@ -331,11 +332,11 @@ INSERT INTO users (email, password, first_name, last_name, phone, is_active, is_
 ON CONFLICT (email) DO NOTHING;
 
 -- Создание тестовых складов/филиалов
-INSERT INTO warehouses (name, address, city, phone, email, is_active, is_main, manager_name) VALUES 
-('Главный склад', 'ул. Промышленная, 15', 'Москва', '+7 (495) 123-45-67', 'main@shop.com', true, true, 'Иванов Иван Иванович'),
-('Филиал "Центр"', 'ул. Тверская, 25', 'Москва', '+7 (495) 234-56-78', 'center@shop.com', true, false, 'Петров Петр Петрович'),
-('Филиал "Север"', 'пр. Мира, 100', 'Москва', '+7 (495) 345-67-89', 'north@shop.com', true, false, 'Сидоров Сидор Сидорович'),
-('Филиал "Юг"', 'ул. Ленина, 50', 'Санкт-Петербург', '+7 (812) 456-78-90', 'south@shop.com', true, false, 'Козлов Козел Козлович')
+INSERT INTO warehouses (name, slug, address, city, phone, email, is_active, is_main, manager_name) VALUES 
+('Главный склад', 'main-warehouse', 'ул. Промышленная, 15', 'Москва', '+7 (495) 123-45-67', 'main@shop.com', true, true, 'Иванов Иван Иванович'),
+('Филиал "Центр"', 'center-branch', 'ул. Тверская, 25', 'Москва', '+7 (495) 234-56-78', 'center@shop.com', true, false, 'Петров Петр Петрович'),
+('Филиал "Север"', 'north-branch', 'пр. Мира, 100', 'Москва', '+7 (495) 345-67-89', 'north@shop.com', true, false, 'Сидоров Сидор Сидорович'),
+('Филиал "Юг"', 'south-branch', 'ул. Ленина, 50', 'Санкт-Петербург', '+7 (812) 456-78-90', 'south@shop.com', true, false, 'Козлов Козел Козлович')
 ON CONFLICT DO NOTHING;
 
 -- Создание тестовых товаров с разными брендами

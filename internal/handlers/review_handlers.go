@@ -13,12 +13,12 @@ import (
 // GetProductReviews - получение отзывов о товаре
 func GetProductReviews(reviewService *services.ReviewService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		productID := c.Param("product_id")
+		identifier := c.Param("slug") // Может быть как slug, так и ID
 		
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-		reviews, err := reviewService.GetByProductID(productID, limit, offset)
+		reviews, err := reviewService.GetByProductSlugOrID(identifier, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

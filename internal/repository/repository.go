@@ -17,6 +17,8 @@ type Repository struct {
 	Wishlist        WishlistRepository
 	Review          ReviewRepository
 	Category        CategoryRepository
+	Warehouse       WarehouseRepository
+	WarehouseStock  WarehouseStockRepository
 	// AddressRepository удален - адреса теперь встроены в User
 	// CouponRepository удален - купоны больше не используются
 }
@@ -112,6 +114,33 @@ type CategoryRepository interface {
 	GetWithProducts(id string, limit, offset int) (*models.Category, error)
 }
 
+type WarehouseRepository interface {
+	Create(warehouse *models.Warehouse) error
+	GetByID(id string) (*models.Warehouse, error)
+	GetBySlug(slug string) (*models.Warehouse, error)
+	GetBySlugOrID(identifier string) (*models.Warehouse, error)
+	GetByCity(city string) ([]*models.Warehouse, error)
+	GetMain() (*models.Warehouse, error)
+	List(limit, offset int) ([]*models.Warehouse, error)
+	Update(id string, name *string, address *string, city *string, phone *string, email *string, isActive *bool, managerName *string) (*models.Warehouse, error)
+	Delete(id string) error
+}
+
+type WarehouseStockRepository interface {
+	Create(warehouseStock *models.WarehouseStock) error
+	GetByID(id string) (*models.WarehouseStock, error)
+	GetByWarehouseAndVariant(warehouseID, variantID string) (*models.WarehouseStock, error)
+	GetByVariant(variantID string) ([]*models.WarehouseStock, error)
+	GetByWarehouse(warehouseID string) ([]*models.WarehouseStock, error)
+	GetAvailableStock(variantID string) (int, error)
+	GetAvailableStockByWarehouse(warehouseID, variantID string) (int, error)
+	UpdateStock(id string, stock, reservedStock int) (*models.WarehouseStock, error)
+	ReserveStock(warehouseID, variantID string, quantity int) error
+	ReleaseReservedStock(warehouseID, variantID string, quantity int) error
+	ConsumeStock(warehouseID, variantID string, quantity int) error
+	Delete(id string) error
+}
+
 // AddressRepository удален - адреса теперь встроены в User
 
 func New(db *gorm.DB, redis *redis.Client) *Repository {
@@ -125,6 +154,8 @@ func New(db *gorm.DB, redis *redis.Client) *Repository {
 		Wishlist:       NewWishlistRepository(db, redis),
 		Review:         NewReviewRepository(db, redis),
 		Category:       NewCategoryRepository(db, redis),
+		Warehouse:      NewWarehouseRepository(db, redis),
+		WarehouseStock: NewWarehouseStockRepository(db, redis),
 		// Address:  NewAddressRepository(db, redis), // удален
 		// Coupon:   NewCouponRepository(db, redis), // удален
 	}

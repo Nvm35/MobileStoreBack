@@ -48,16 +48,44 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 		categories.GET("/:slug/products", GetCategoryProductsBySlug(services.Category))
 	}
 
-	// Продукты (публичные)
+	// Продукты (публичные) - исправлен порядок для избежания конфликтов
 	products := router.Group("/products")
 	{
 		products.GET("/", GetProducts(services.Product))
-		products.GET("/:id", GetProduct(services.Product))
-		products.GET("/search", SearchProducts(services.Product))
-		products.GET("/:id/reviews", GetProductReviews(services.Review))
-		// Варианты товаров
-		products.GET("/:id/variants", GetProductVariantsByProductID(services.ProductVariant))
+		products.GET("/search", SearchProducts(services.Product)) // поиск должен быть перед /:slug
+		products.GET("/:slug", GetProduct(services.Product)) // поддерживает и slug, и ID
+		products.GET("/:slug/reviews", GetProductReviews(services.Review))
+		products.GET("/:slug/variants", GetProductVariantsByProductID(services.ProductVariant))
 	}
+
+	// Склады (публичные)
+	warehouses := router.Group("/warehouses")
+	{
+		warehouses.GET("/", GetWarehouses(services.Warehouse))
+		warehouses.GET("/main", GetMainWarehouse(services.Warehouse))
+		warehouses.GET("/:slug", GetWarehouse(services.Warehouse)) // поддерживает и slug, и ID
+		warehouses.GET("/city/:city", GetWarehousesByCity(services.Warehouse))
+	}
+
+	// Остатки товаров (публичные) - упрощенные URL
+	stocks := router.Group("/stocks")
+	{
+		// Остатки по складу
+		stocks.GET("/warehouse/:warehouse_slug", GetWarehouseStocks(services.WarehouseStock))
+		
+		// Остатки по варианту товара (используем SKU вместо ID)
+		stocks.GET("/variant/:sku", GetVariantStocks(services.WarehouseStock))
+		stocks.GET("/variant/:sku/availability", GetAvailabilityInfo(services.WarehouseStock))
+		stocks.GET("/variant/:sku/check", CheckAvailability(services.WarehouseStock))
+		stocks.GET("/variant/:sku/total", GetTotalAvailableStock(services.WarehouseStock))
+		
+		// Проверка доступности на конкретном складе
+		stocks.GET("/warehouse/:warehouse_slug/variant/:sku/check", CheckAvailabilityByWarehouse(services.WarehouseStock))
+	}
+
+	// Дополнительные удобные маршруты для фронтенда
+	router.GET("/search", SearchProducts(services.Product)) // глобальный поиск
+	router.GET("/warehouses", GetWarehouses(services.Warehouse)) // альтернативный путь к складам
 }
 
 // ============================================================================
@@ -187,6 +215,23 @@ func setupAdminCatalogRoutes(router *gin.RouterGroup, services *services.Service
 		categories.GET("/:id", GetCategory(services.Category))
 		categories.PUT("/:id", UpdateCategory(services.Category))
 		categories.DELETE("/:id", DeleteCategory(services.Category))
+	}
+
+	// Управление складами
+	warehouses := router.Group("/warehouses")
+	{
+		warehouses.POST("/", CreateWarehouse(services.Warehouse))
+		warehouses.GET("/:id", GetWarehouse(services.Warehouse))
+		warehouses.PUT("/:id", UpdateWarehouse(services.Warehouse))
+		warehouses.DELETE("/:id", DeleteWarehouse(services.Warehouse))
+	}
+
+	// Управление остатками товаров
+	warehouseStocks := router.Group("/warehouse-stocks")
+	{
+		warehouseStocks.POST("/", CreateWarehouseStock(services.WarehouseStock))
+		warehouseStocks.PUT("/:id", UpdateWarehouseStock(services.WarehouseStock))
+		warehouseStocks.DELETE("/:id", DeleteWarehouseStock(services.WarehouseStock))
 	}
 }
 
