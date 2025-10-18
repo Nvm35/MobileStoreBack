@@ -74,8 +74,6 @@ func setupProtectedRoutes(api *gin.RouterGroup, services *services.Services) {
 		// Отзывы и рейтинги
 		setupReviewRoutes(protected, services)
 		
-		// Промокоды
-		setupCouponRoutes(protected, services)
 	}
 }
 
@@ -130,14 +128,6 @@ func setupReviewRoutes(router *gin.RouterGroup, services *services.Services) {
 	}
 }
 
-func setupCouponRoutes(router *gin.RouterGroup, services *services.Services) {
-	coupons := router.Group("/coupons")
-	{
-		coupons.GET("/", GetCoupons(services.Coupon))
-		coupons.GET("/:id", GetCoupon(services.Coupon))
-		coupons.POST("/validate", ValidateCoupon(services.Coupon))
-	}
-}
 
 // ============================================================================
 // АДМИНСКИЕ МАРШРУТЫ (требуют админских прав)
@@ -205,12 +195,4 @@ func setupAdminContentRoutes(router *gin.RouterGroup, services *services.Service
 		reviews.PUT("/:id/approve", ApproveReview(services.Review))
 	}
 
-	// Управление промокодами
-	coupons := router.Group("/coupons")
-	{
-		coupons.POST("/", CreateCoupon(services.Coupon))
-		coupons.PUT("/:id", UpdateCoupon(services.Coupon))
-		coupons.DELETE("/:id", DeleteCoupon(services.Coupon))
-		coupons.GET("/:id/usage", GetCouponUsage(services.Coupon))
-	}
 }

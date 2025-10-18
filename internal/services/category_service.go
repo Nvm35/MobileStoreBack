@@ -31,8 +31,8 @@ func (s *CategoryService) Create(category *models.Category) error {
 	return s.repo.Create(category)
 }
 
-func (s *CategoryService) Update(id string, name *string, description *string, slug *string, isActive *bool, sortOrder *int, imageURL *string, metaTitle *string, metaDescription *string) (*models.Category, error) {
-	return s.repo.Update(id, name, description, slug, isActive, sortOrder, imageURL, metaTitle, metaDescription)
+func (s *CategoryService) Update(id string, name *string, description *string, slug *string, imageURL *string) (*models.Category, error) {
+	return s.repo.Update(id, name, description, slug, imageURL)
 }
 
 func (s *CategoryService) Delete(id string) error {

@@ -28,11 +28,9 @@ func UpdateProfile(userService *services.UserService) gin.HandlerFunc {
 		userID, _ := c.Get("user_id")
 		
 		var req struct {
-			FirstName   *string `json:"first_name" validate:"omitempty,min=2"`
-			LastName    *string `json:"last_name" validate:"omitempty,min=2"`
-			Phone       *string `json:"phone" validate:"omitempty,e164"`
-			DateOfBirth *string `json:"date_of_birth" validate:"omitempty,datetime=2006-01-02"`
-			Gender      *string `json:"gender" validate:"omitempty,oneof=male female"`
+			FirstName *string `json:"first_name" validate:"omitempty,min=2"`
+			LastName  *string `json:"last_name" validate:"omitempty,min=2"`
+			Phone     *string `json:"phone" validate:"omitempty,e164"`
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -47,7 +45,7 @@ func UpdateProfile(userService *services.UserService) gin.HandlerFunc {
 			return
 		}
 
-		user, err := userService.UpdateProfile(userID.(string), req.FirstName, req.LastName, req.Phone, req.DateOfBirth, req.Gender)
+		user, err := userService.UpdateProfile(userID.(string), req.FirstName, req.LastName, req.Phone)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -91,13 +89,11 @@ func UpdateUser(userService *services.UserService) gin.HandlerFunc {
 		id := c.Param("id")
 		
 		var req struct {
-			FirstName   *string `json:"first_name" validate:"omitempty,min=2"`
-			LastName    *string `json:"last_name" validate:"omitempty,min=2"`
-			Phone       *string `json:"phone" validate:"omitempty,e164"`
-			DateOfBirth *string `json:"date_of_birth" validate:"omitempty,datetime=2006-01-02"`
-			Gender      *string `json:"gender" validate:"omitempty,oneof=male female"`
-			IsActive    *bool   `json:"is_active"`
-			IsAdmin     *bool   `json:"is_admin"`
+			FirstName *string `json:"first_name" validate:"omitempty,min=2"`
+			LastName  *string `json:"last_name" validate:"omitempty,min=2"`
+			Phone     *string `json:"phone" validate:"omitempty,e164"`
+			IsActive  *bool   `json:"is_active"`
+			IsAdmin   *bool   `json:"is_admin"`
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -112,7 +108,7 @@ func UpdateUser(userService *services.UserService) gin.HandlerFunc {
 			return
 		}
 
-		user, err := userService.Update(id, req.FirstName, req.LastName, req.Phone, req.DateOfBirth, req.Gender, req.IsActive, req.IsAdmin)
+		user, err := userService.Update(id, req.FirstName, req.LastName, req.Phone, req.IsActive, req.IsAdmin)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

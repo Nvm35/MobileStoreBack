@@ -104,14 +104,10 @@ func GetCategoryProductsBySlug(categoryService *services.CategoryService) gin.Ha
 func CreateCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
-			Name            string `json:"name" validate:"required,min=2"`
-			Description     string `json:"description"`
-			Slug            string `json:"slug" validate:"required"`
-			IsActive        bool   `json:"is_active"`
-			SortOrder       int    `json:"sort_order"`
-			ImageURL        string `json:"image_url"`
-			MetaTitle       string `json:"meta_title"`
-			MetaDescription string `json:"meta_description"`
+			Name        string `json:"name" validate:"required,min=2"`
+			Description string `json:"description"`
+			Slug        string `json:"slug" validate:"required"`
+			ImageURL    string `json:"image_url"`
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -120,15 +116,11 @@ func CreateCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 		}
 
 		category := &models.Category{
-			ID:              uuid.New(),
-			Name:            req.Name,
-			Description:     req.Description,
-			Slug:            req.Slug,
-			IsActive:        req.IsActive,
-			SortOrder:       req.SortOrder,
-			ImageURL:        req.ImageURL,
-			MetaTitle:       req.MetaTitle,
-			MetaDescription: req.MetaDescription,
+			ID:          uuid.New(),
+			Name:        req.Name,
+			Description: req.Description,
+			Slug:        req.Slug,
+			ImageURL:    req.ImageURL,
 		}
 
 		err := categoryService.Create(category)
@@ -146,14 +138,10 @@ func UpdateCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 		id := c.Param("id")
 		
 		var req struct {
-			Name            *string `json:"name"`
-			Description     *string `json:"description"`
-			Slug            *string `json:"slug"`
-			IsActive        *bool   `json:"is_active"`
-			SortOrder       *int    `json:"sort_order"`
-			ImageURL        *string `json:"image_url"`
-			MetaTitle       *string `json:"meta_title"`
-			MetaDescription *string `json:"meta_description"`
+			Name        *string `json:"name"`
+			Description *string `json:"description"`
+			Slug        *string `json:"slug"`
+			ImageURL    *string `json:"image_url"`
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -161,7 +149,7 @@ func UpdateCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 			return
 		}
 
-		category, err := categoryService.Update(id, req.Name, req.Description, req.Slug, req.IsActive, req.SortOrder, req.ImageURL, req.MetaTitle, req.MetaDescription)
+		category, err := categoryService.Update(id, req.Name, req.Description, req.Slug, req.ImageURL)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

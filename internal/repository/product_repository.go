@@ -25,33 +25,24 @@ func NewProductRepository(db *gorm.DB, redis *redis.Client) ProductRepository {
 	}
 }
 
-func (r *productRepository) Create(name string, slug string, description string, shortDescription string, price float64, comparePrice *float64, sku string, stock int, isActive bool, isFeatured bool, isNew bool, weight *float64, dimensions string, brand string, model string, color string, material string, categoryID string, tags []string, metaTitle string, metaDescription string) (*models.Product, error) {
+func (r *productRepository) Create(name string, slug string, description string, basePrice float64, sku string, stock int, isActive bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error) {
 	categoryUUID, _ := uuid.Parse(categoryID)
-	
+
 	product := models.Product{
-		Name:             name,
-		Slug:             slug,
-		Description:      description,
-		ShortDescription: shortDescription,
-		Price:            price,
-		ComparePrice:     comparePrice,
-		SKU:              sku,
-		Stock:            stock,
-		IsActive:         isActive,
-		IsFeatured:       isFeatured,
-		IsNew:            isNew,
-		Weight:           weight,
-		Dimensions:       dimensions,
-		Brand:            brand,
-		Model:            model,
-		Color:            color,
-		Material:         material,
-		CategoryID:       categoryUUID,
-		Tags:             tags,
-		MetaTitle:        metaTitle,
-		MetaDescription:  metaDescription,
+		Name:        name,
+		Slug:        slug,
+		Description: description,
+		BasePrice:   basePrice,
+		SKU:         sku,
+		Stock:       stock,
+		IsActive:    isActive,
+		Brand:       brand,
+		Model:       model,
+		Material:    material,
+		CategoryID:  categoryUUID,
+		Tags:        tags,
 	}
-	
+
 	err := r.db.Create(&product).Error
 	return &product, err
 }
@@ -88,27 +79,21 @@ func (r *productRepository) GetBySKU(sku string) (*models.Product, error) {
 	return &product, nil
 }
 
-func (r *productRepository) Update(id string, name *string, description *string, shortDescription *string, price *float64, comparePrice *float64, stock *int, isActive *bool, isFeatured *bool, isNew *bool, weight *float64, dimensions *string, brand *string, model *string, color *string, material *string, categoryID *string, tags []string, metaTitle *string, metaDescription *string) (*models.Product, error) {
+func (r *productRepository) Update(id string, name *string, description *string, basePrice *float64, stock *int, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error) {
 	var product models.Product
 	err := r.db.Where("id = ?", id).First(&product).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if name != nil {
 		product.Name = *name
 	}
 	if description != nil {
 		product.Description = *description
 	}
-	if shortDescription != nil {
-		product.ShortDescription = *shortDescription
-	}
-	if price != nil {
-		product.Price = *price
-	}
-	if comparePrice != nil {
-		product.ComparePrice = comparePrice
+	if basePrice != nil {
+		product.BasePrice = *basePrice
 	}
 	if stock != nil {
 		product.Stock = *stock
@@ -116,26 +101,11 @@ func (r *productRepository) Update(id string, name *string, description *string,
 	if isActive != nil {
 		product.IsActive = *isActive
 	}
-	if isFeatured != nil {
-		product.IsFeatured = *isFeatured
-	}
-	if isNew != nil {
-		product.IsNew = *isNew
-	}
-	if weight != nil {
-		product.Weight = weight
-	}
-	if dimensions != nil {
-		product.Dimensions = *dimensions
-	}
 	if brand != nil {
 		product.Brand = *brand
 	}
 	if model != nil {
 		product.Model = *model
-	}
-	if color != nil {
-		product.Color = *color
 	}
 	if material != nil {
 		product.Material = *material
@@ -148,13 +118,7 @@ func (r *productRepository) Update(id string, name *string, description *string,
 	if len(tags) > 0 {
 		product.Tags = tags
 	}
-	if metaTitle != nil {
-		product.MetaTitle = *metaTitle
-	}
-	if metaDescription != nil {
-		product.MetaDescription = *metaDescription
-	}
-	
+
 	// Обновляем в базе данных
 	err = r.db.Save(&product).Error
 	if err != nil {

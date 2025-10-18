@@ -18,26 +18,34 @@ func NewOrderService(repo repository.OrderRepository) *OrderService {
 }
 
 func (s *OrderService) Create(userID string, items []struct {
-	ProductID uuid.UUID
-	Quantity  int
-}, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string, couponCode string) (*models.Order, error) {
+	ProductID        uuid.UUID
+	ProductVariantID *uuid.UUID
+	Quantity         int
+}, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string) (*models.Order, error) {
 	// Конвертируем UUID в строки для repository
 	itemsStr := make([]struct {
-		ProductID string
-		Quantity  int
+		ProductID        string
+		ProductVariantID *string
+		Quantity         int
 	}, len(items))
 	
 	for i, item := range items {
 		itemsStr[i] = struct {
-			ProductID string
-			Quantity  int
+			ProductID        string
+			ProductVariantID *string
+			Quantity         int
 		}{
-			ProductID: item.ProductID.String(),
-			Quantity:  item.Quantity,
+			ProductID:        item.ProductID.String(),
+			ProductVariantID: nil,
+			Quantity:         item.Quantity,
+		}
+		if item.ProductVariantID != nil {
+			variantIDStr := item.ProductVariantID.String()
+			itemsStr[i].ProductVariantID = &variantIDStr
 		}
 	}
 	
-	return s.repo.Create(userID, itemsStr, shippingMethod, shippingAddress, pickupPoint, paymentMethod, customerNotes, couponCode)
+	return s.repo.Create(userID, itemsStr, shippingMethod, shippingAddress, pickupPoint, paymentMethod, customerNotes)
 }
 
 func (s *OrderService) GetByID(id string) (*models.Order, error) {

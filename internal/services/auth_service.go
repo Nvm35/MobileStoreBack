@@ -34,7 +34,6 @@ type RegisterRequest struct {
 	FirstName string  `json:"first_name" validate:"required,min=2"`
 	LastName  string  `json:"last_name" validate:"required,min=2"`
 	Phone     string  `json:"phone" validate:"omitempty,e164"`
-	Gender    *string `json:"gender" validate:"omitempty,oneof=male female"`
 }
 
 type AuthResponse struct {
@@ -66,10 +65,6 @@ func (s *AuthService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		IsAdmin:  false,
 	}
 	
-	// Устанавливаем gender только если он указан
-	if req.Gender != nil {
-		user.Gender = req.Gender
-	}
 
 	if err := s.repo.CreateUser(user); err != nil {
 		return nil, err

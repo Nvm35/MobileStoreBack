@@ -59,7 +59,7 @@ func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *userRepository) UpdateProfile(userID string, firstName *string, lastName *string, phone *string, dateOfBirth *string, gender *string) (*models.User, error) {
+func (r *userRepository) UpdateProfile(userID string, firstName *string, lastName *string, phone *string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
@@ -75,14 +75,6 @@ func (r *userRepository) UpdateProfile(userID string, firstName *string, lastNam
 	if phone != nil {
 		user.Phone = *phone
 	}
-	if dateOfBirth != nil {
-		if t, err := time.Parse("2006-01-02", *dateOfBirth); err == nil {
-			user.DateOfBirth = &t
-		}
-	}
-	if gender != nil {
-		user.Gender = gender
-	}
 	
 	err = r.db.Save(&user).Error
 	if err != nil {
@@ -96,7 +88,7 @@ func (r *userRepository) UpdateProfile(userID string, firstName *string, lastNam
 	return &user, nil
 }
 
-func (r *userRepository) Update(id string, firstName *string, lastName *string, phone *string, dateOfBirth *string, gender *string, isActive *bool, isAdmin *bool) (*models.User, error) {
+func (r *userRepository) Update(id string, firstName *string, lastName *string, phone *string, isActive *bool, isAdmin *bool) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("id = ?", id).First(&user).Error
 	if err != nil {
@@ -111,14 +103,6 @@ func (r *userRepository) Update(id string, firstName *string, lastName *string, 
 	}
 	if phone != nil {
 		user.Phone = *phone
-	}
-	if dateOfBirth != nil {
-		if t, err := time.Parse("2006-01-02", *dateOfBirth); err == nil {
-			user.DateOfBirth = &t
-		}
-	}
-	if gender != nil {
-		user.Gender = gender
 	}
 	if isActive != nil {
 		user.IsActive = *isActive

@@ -8,45 +8,56 @@ import (
 )
 
 type Repository struct {
-	User     UserRepository
-	Product  ProductRepository
-	Order    OrderRepository
-	Auth     AuthRepository
-	Cart     CartRepository
-	Wishlist WishlistRepository
-	Review   ReviewRepository
-	Coupon   CouponRepository
-	Category CategoryRepository
+	User            UserRepository
+	Product         ProductRepository
+	ProductVariant  ProductVariantRepository
+	Order           OrderRepository
+	Auth            AuthRepository
+	Cart            CartRepository
+	Wishlist        WishlistRepository
+	Review          ReviewRepository
+	Category        CategoryRepository
 	// AddressRepository удален - адреса теперь встроены в User
+	// CouponRepository удален - купоны больше не используются
 }
 
 type UserRepository interface {
 	Create(user *models.User) error
 	GetByID(id string) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
-	UpdateProfile(userID string, firstName *string, lastName *string, phone *string, dateOfBirth *string, gender *string) (*models.User, error)
-	Update(id string, firstName *string, lastName *string, phone *string, dateOfBirth *string, gender *string, isActive *bool, isAdmin *bool) (*models.User, error)
+	UpdateProfile(userID string, firstName *string, lastName *string, phone *string) (*models.User, error)
+	Update(id string, firstName *string, lastName *string, phone *string, isActive *bool, isAdmin *bool) (*models.User, error)
 	Delete(id string) error
 	List(limit, offset int) ([]*models.User, error)
 }
 
 type ProductRepository interface {
-	Create(name string, slug string, description string, shortDescription string, price float64, comparePrice *float64, sku string, stock int, isActive bool, isFeatured bool, isNew bool, weight *float64, dimensions string, brand string, model string, color string, material string, categoryID string, tags []string, metaTitle string, metaDescription string) (*models.Product, error)
+	Create(name string, slug string, description string, basePrice float64, sku string, stock int, isActive bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error)
 	GetByID(id string) (*models.Product, error)
 	GetBySlug(slug string) (*models.Product, error)
 	GetBySKU(sku string) (*models.Product, error)
-	Update(id string, name *string, description *string, shortDescription *string, price *float64, comparePrice *float64, stock *int, isActive *bool, isFeatured *bool, isNew *bool, weight *float64, dimensions *string, brand *string, model *string, color *string, material *string, categoryID *string, tags []string, metaTitle *string, metaDescription *string) (*models.Product, error)
+	Update(id string, name *string, description *string, basePrice *float64, stock *int, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error)
 	Delete(id string) error
 	List(limit, offset int) ([]*models.Product, error)
 	Search(query string, limit, offset int) ([]*models.Product, error)
 	GetByCategory(categoryID string, limit, offset int) ([]*models.Product, error)
 }
 
+type ProductVariantRepository interface {
+	Create(productID string, sku string, name string, color string, size string, price float64, stock int, isActive bool) (*models.ProductVariant, error)
+	GetByID(id string) (*models.ProductVariant, error)
+	GetBySKU(sku string) (*models.ProductVariant, error)
+	GetByProductID(productID string) ([]*models.ProductVariant, error)
+	Update(id string, sku *string, name *string, color *string, size *string, price *float64, stock *int, isActive *bool) (*models.ProductVariant, error)
+	Delete(id string) error
+}
+
 type OrderRepository interface {
 	Create(userID string, items []struct {
-		ProductID string
-		Quantity  int
-	}, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string, couponCode string) (*models.Order, error)
+		ProductID        string
+		ProductVariantID *string
+		Quantity         int
+	}, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string) (*models.Order, error)
 	GetByID(id string) (*models.Order, error)
 	GetByUserID(userID string, limit, offset int) ([]*models.Order, error)
 	Update(id string, userID string, status *string, paymentStatus *string, trackingNumber *string, customerNotes *string, shippingMethod *string, shippingAddress *string, pickupPoint *string) (*models.Order, error)
@@ -90,29 +101,31 @@ type ReviewRepository interface {
 	Approve(id string, approved bool) error
 }
 
-type CouponRepository interface {
-	GetAll(limit, offset int) ([]models.Coupon, error)
-	GetByID(id string) (*models.Coupon, error)
-	Validate(code string, userID string, orderAmount float64) (*models.Coupon, error)
-	Create(code string, name string, description string, couponType string, value float64, minimumAmount float64, maximumDiscount *float64, usageLimit *int, startsAt *string, expiresAt *string) (*models.Coupon, error)
-	Update(id string, name *string, description *string, value *float64, minimumAmount *float64, maximumDiscount *float64, usageLimit *int, isActive *bool, startsAt *string, expiresAt *string) (*models.Coupon, error)
+
+type CategoryRepository interface {
+	GetAll(limit, offset int) ([]*models.Category, error)
+	GetByID(id string) (*models.Category, error)
+	GetBySlug(slug string) (*models.Category, error)
+	Create(category *models.Category) error
+	Update(id string, name *string, description *string, slug *string, imageURL *string) (*models.Category, error)
 	Delete(id string) error
-	GetUsage(id string) ([]models.CouponUsage, error)
+	GetWithProducts(id string, limit, offset int) (*models.Category, error)
 }
 
 // AddressRepository удален - адреса теперь встроены в User
 
 func New(db *gorm.DB, redis *redis.Client) *Repository {
 	return &Repository{
-		User:     NewUserRepository(db, redis),
-		Product:  NewProductRepository(db, redis),
-		Order:    NewOrderRepository(db, redis),
-		Auth:     NewAuthRepository(db, redis),
-		Cart:     NewCartRepository(db, redis),
-		Wishlist: NewWishlistRepository(db, redis),
-		Review:   NewReviewRepository(db, redis),
-		Coupon:   NewCouponRepository(db, redis),
-		Category: NewCategoryRepository(db, redis),
+		User:           NewUserRepository(db, redis),
+		Product:        NewProductRepository(db, redis),
+		ProductVariant: NewProductVariantRepository(db, redis),
+		Order:          NewOrderRepository(db, redis),
+		Auth:           NewAuthRepository(db, redis),
+		Cart:           NewCartRepository(db, redis),
+		Wishlist:       NewWishlistRepository(db, redis),
+		Review:         NewReviewRepository(db, redis),
+		Category:       NewCategoryRepository(db, redis),
 		// Address:  NewAddressRepository(db, redis), // удален
+		// Coupon:   NewCouponRepository(db, redis), // удален
 	}
 }

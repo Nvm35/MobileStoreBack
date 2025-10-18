@@ -16,8 +16,9 @@ func CreateOrder(orderService *services.OrderService) gin.HandlerFunc {
 		
 		var req struct {
 			Items             []struct {
-				ProductID uuid.UUID `json:"product_id" validate:"required"`
-				Quantity  int       `json:"quantity" validate:"required,min=1"`
+				ProductID        uuid.UUID  `json:"product_id" validate:"required"`
+				ProductVariantID *uuid.UUID `json:"product_variant_id"`
+				Quantity         int        `json:"quantity" validate:"required,min=1"`
 			} `json:"items" validate:"required,min=1"`
 			// Способ доставки
 			ShippingMethod    string `json:"shipping_method" validate:"required,oneof=delivery pickup"`
@@ -27,7 +28,6 @@ func CreateOrder(orderService *services.OrderService) gin.HandlerFunc {
 			PickupPoint       string `json:"pickup_point"`
 			PaymentMethod     string     `json:"payment_method" validate:"required,oneof=cash card transfer"`
 			CustomerNotes     string     `json:"customer_notes"`
-			CouponCode        string     `json:"coupon_code"`
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -44,21 +44,24 @@ func CreateOrder(orderService *services.OrderService) gin.HandlerFunc {
 
 		// Конвертируем структуры для service
 		items := make([]struct {
-			ProductID uuid.UUID
-			Quantity  int
+			ProductID        uuid.UUID
+			ProductVariantID *uuid.UUID
+			Quantity         int
 		}, len(req.Items))
 		
 		for i, item := range req.Items {
 			items[i] = struct {
-				ProductID uuid.UUID
-				Quantity  int
+				ProductID        uuid.UUID
+				ProductVariantID *uuid.UUID
+				Quantity         int
 			}{
-				ProductID: item.ProductID,
-				Quantity:  item.Quantity,
+				ProductID:        item.ProductID,
+				ProductVariantID: item.ProductVariantID,
+				Quantity:         item.Quantity,
 			}
 		}
 		
-		order, err := orderService.Create(userID.(string), items, req.ShippingMethod, req.ShippingAddress, req.PickupPoint, req.PaymentMethod, req.CustomerNotes, req.CouponCode)
+		order, err := orderService.Create(userID.(string), items, req.ShippingMethod, req.ShippingAddress, req.PickupPoint, req.PaymentMethod, req.CustomerNotes)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

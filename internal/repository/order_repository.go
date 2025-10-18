@@ -18,18 +18,19 @@ func NewOrderRepository(db *gorm.DB, redis *redis.Client) OrderRepository {
 }
 
 func (r *orderRepository) Create(userID string, items []struct {
-	ProductID string
-	Quantity  int
-}, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string, couponCode string) (*models.Order, error) {
+	ProductID        string
+	ProductVariantID *string
+	Quantity         int
+}, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string) (*models.Order, error) {
 	// TODO: Реализовать полную логику создания заказа
-	// Это требует сложной бизнес-логики: расчет цен, применение промокодов, создание order_items и т.д.
+	// Это требует сложной бизнес-логики: расчет цен, создание order_items и т.д.
 	// Пока возвращаем заглушку
 	return nil, gorm.ErrNotImplemented
 }
 
 func (r *orderRepository) GetByID(id string) (*models.Order, error) {
 	var order models.Order
-	if err := r.db.Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("Address").
+	if err := r.db.Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.ProductVariant").
 		First(&order, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
@@ -38,7 +39,7 @@ func (r *orderRepository) GetByID(id string) (*models.Order, error) {
 
 func (r *orderRepository) GetByUserID(userID string, limit, offset int) ([]*models.Order, error) {
 	var orders []*models.Order
-	if err := r.db.Preload("OrderItems").Preload("OrderItems.Product").Preload("Address").
+	if err := r.db.Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.ProductVariant").
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
 		Limit(limit).Offset(offset).Find(&orders).Error; err != nil {
@@ -104,7 +105,7 @@ func (r *orderRepository) Delete(id string) error {
 
 func (r *orderRepository) List(limit, offset int) ([]*models.Order, error) {
 	var orders []*models.Order
-	if err := r.db.Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("Address").
+	if err := r.db.Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.ProductVariant").
 		Order("created_at DESC").
 		Limit(limit).Offset(offset).Find(&orders).Error; err != nil {
 		return nil, err
