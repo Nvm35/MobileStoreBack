@@ -83,6 +83,13 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 		stocks.GET("/warehouse/:warehouse_slug/variant/:sku/check", CheckAvailabilityByWarehouse(services.WarehouseStock))
 	}
 
+	// Изображения товаров (публичные)
+	images := router.Group("/images")
+	{
+		images.GET("/product/:slug", GetProductImages(services.Image))
+	}
+
+
 	// Дополнительные удобные маршруты для фронтенда
 	router.GET("/search", SearchProducts(services.Product)) // глобальный поиск
 	router.GET("/warehouses", GetWarehouses(services.Warehouse)) // альтернативный путь к складам
@@ -233,6 +240,15 @@ func setupAdminCatalogRoutes(router *gin.RouterGroup, services *services.Service
 		warehouseStocks.PUT("/:id", UpdateWarehouseStock(services.WarehouseStock))
 		warehouseStocks.DELETE("/:id", DeleteWarehouseStock(services.WarehouseStock))
 	}
+
+	// Управление изображениями
+	images := router.Group("/images")
+	{
+		images.POST("/product/:id", UploadProductImage(services.Image))
+		images.DELETE("/:id", DeleteImage(services.Image))
+		images.PUT("/:id/primary", SetPrimaryImage(services.Image))
+	}
+
 }
 
 func setupAdminOrderRoutes(router *gin.RouterGroup, services *services.Services) {

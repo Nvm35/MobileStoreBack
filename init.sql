@@ -201,6 +201,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 
+
 -- =============================================
 -- ИНДЕКСЫ ДЛЯ ОПТИМИЗАЦИИ
 -- =============================================
@@ -230,6 +231,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_variant_id ON order_items(product_variant_id);
+
 
 -- Индексы для корзины
 CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(user_id);

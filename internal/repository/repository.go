@@ -19,8 +19,8 @@ type Repository struct {
 	Category        CategoryRepository
 	Warehouse       WarehouseRepository
 	WarehouseStock  WarehouseStockRepository
+	Image           ImageRepository
 	// AddressRepository удален - адреса теперь встроены в User
-	// CouponRepository удален - купоны больше не используются
 }
 
 type UserRepository interface {
@@ -156,7 +156,6 @@ func New(db *gorm.DB, redis *redis.Client) *Repository {
 		Category:       NewCategoryRepository(db, redis),
 		Warehouse:      NewWarehouseRepository(db, redis),
 		WarehouseStock: NewWarehouseStockRepository(db, redis),
-		// Address:  NewAddressRepository(db, redis), // удален
-		// Coupon:   NewCouponRepository(db, redis), // удален
+		Image:          NewImageRepository(db, redis),
 	}
 }

@@ -17,8 +17,7 @@ type Services struct {
 	Category       *CategoryService
 	Warehouse      *WarehouseService
 	WarehouseStock *WarehouseStockService
-	// AddressService удален - адреса теперь встроены в User
-	// CouponService удален - купоны больше не используются
+	Image          *ImageService
 }
 
 func New(repos *repository.Repository, cfg *config.Config) *Services {
@@ -34,7 +33,6 @@ func New(repos *repository.Repository, cfg *config.Config) *Services {
 		Category:       NewCategoryService(repos.Category),
 		Warehouse:      NewWarehouseService(repos.Warehouse),
 		WarehouseStock: NewWarehouseStockService(repos.WarehouseStock),
-		// Address:  NewAddressService(repos.Address), // удален
-		// Coupon:   NewCouponService(repos.Coupon), // удален
+		Image:          NewImageService(repos.Image),
 	}
 }

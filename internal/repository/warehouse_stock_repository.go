@@ -112,3 +112,4 @@ func (r *warehouseStockRepository) ConsumeStock(warehouseID, variantID string, q
 func (r *warehouseStockRepository) Delete(id string) error {
 	return r.db.Delete(&models.WarehouseStock{}, "id = ?", id).Error
 }
+
