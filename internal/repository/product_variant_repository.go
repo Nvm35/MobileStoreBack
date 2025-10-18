@@ -24,7 +24,7 @@ func NewProductVariantRepository(db *gorm.DB, redis *redis.Client) ProductVarian
 	}
 }
 
-func (r *productVariantRepository) Create(productID string, sku string, name string, color string, size string, price float64, stock int, isActive bool) (*models.ProductVariant, error) {
+func (r *productVariantRepository) Create(productID string, sku string, name string, color string, size string, price float64, isActive bool) (*models.ProductVariant, error) {
 	productUUID, _ := uuid.Parse(productID)
 
 	variant := models.ProductVariant{
@@ -34,7 +34,6 @@ func (r *productVariantRepository) Create(productID string, sku string, name str
 		Color:     color,
 		Size:      size,
 		Price:     price,
-		Stock:     stock,
 		IsActive:  isActive,
 	}
 
@@ -82,7 +81,7 @@ func (r *productVariantRepository) GetByProductID(productID string) ([]*models.P
 	return variants, err
 }
 
-func (r *productVariantRepository) Update(id string, sku *string, name *string, color *string, size *string, price *float64, stock *int, isActive *bool) (*models.ProductVariant, error) {
+func (r *productVariantRepository) Update(id string, sku *string, name *string, color *string, size *string, price *float64, isActive *bool) (*models.ProductVariant, error) {
 	var variant models.ProductVariant
 	err := r.db.Where("id = ?", id).First(&variant).Error
 	if err != nil {
@@ -103,9 +102,6 @@ func (r *productVariantRepository) Update(id string, sku *string, name *string, 
 	}
 	if price != nil {
 		variant.Price = *price
-	}
-	if stock != nil {
-		variant.Stock = *stock
 	}
 	if isActive != nil {
 		variant.IsActive = *isActive

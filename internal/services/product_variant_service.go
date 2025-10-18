@@ -15,8 +15,8 @@ func NewProductVariantService(repo repository.ProductVariantRepository) *Product
 	}
 }
 
-func (s *ProductVariantService) Create(productID string, sku string, name string, color string, size string, price float64, stock int, isActive bool) (*models.ProductVariant, error) {
-	return s.repo.Create(productID, sku, name, color, size, price, stock, isActive)
+func (s *ProductVariantService) Create(productID string, sku string, name string, color string, size string, price float64, isActive bool) (*models.ProductVariant, error) {
+	return s.repo.Create(productID, sku, name, color, size, price, isActive)
 }
 
 func (s *ProductVariantService) GetByID(id string) (*models.ProductVariant, error) {
@@ -31,8 +31,8 @@ func (s *ProductVariantService) GetByProductID(productID string) ([]*models.Prod
 	return s.repo.GetByProductID(productID)
 }
 
-func (s *ProductVariantService) Update(id string, sku *string, name *string, color *string, size *string, price *float64, stock *int, isActive *bool) (*models.ProductVariant, error) {
-	return s.repo.Update(id, sku, name, color, size, price, stock, isActive)
+func (s *ProductVariantService) Update(id string, sku *string, name *string, color *string, size *string, price *float64, isActive *bool) (*models.ProductVariant, error) {
+	return s.repo.Update(id, sku, name, color, size, price, isActive)
 }
 
 func (s *ProductVariantService) Delete(id string) error {

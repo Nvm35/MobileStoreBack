@@ -25,7 +25,7 @@ func NewProductRepository(db *gorm.DB, redis *redis.Client) ProductRepository {
 	}
 }
 
-func (r *productRepository) Create(name string, slug string, description string, basePrice float64, sku string, stock int, isActive bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error) {
+func (r *productRepository) Create(name string, slug string, description string, basePrice float64, sku string, isActive bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error) {
 	categoryUUID, _ := uuid.Parse(categoryID)
 
 	product := models.Product{
@@ -34,7 +34,6 @@ func (r *productRepository) Create(name string, slug string, description string,
 		Description: description,
 		BasePrice:   basePrice,
 		SKU:         sku,
-		Stock:       stock,
 		IsActive:    isActive,
 		Brand:       brand,
 		Model:       model,
@@ -79,7 +78,7 @@ func (r *productRepository) GetBySKU(sku string) (*models.Product, error) {
 	return &product, nil
 }
 
-func (r *productRepository) Update(id string, name *string, description *string, basePrice *float64, stock *int, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error) {
+func (r *productRepository) Update(id string, name *string, description *string, basePrice *float64, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error) {
 	var product models.Product
 	err := r.db.Where("id = ?", id).First(&product).Error
 	if err != nil {
@@ -94,9 +93,6 @@ func (r *productRepository) Update(id string, name *string, description *string,
 	}
 	if basePrice != nil {
 		product.BasePrice = *basePrice
-	}
-	if stock != nil {
-		product.Stock = *stock
 	}
 	if isActive != nil {
 		product.IsActive = *isActive

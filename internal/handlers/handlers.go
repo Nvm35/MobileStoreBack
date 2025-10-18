@@ -55,6 +55,8 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 		products.GET("/:id", GetProduct(services.Product))
 		products.GET("/search", SearchProducts(services.Product))
 		products.GET("/:id/reviews", GetProductReviews(services.Review))
+		// Варианты товаров
+		products.GET("/:id/variants", GetProductVariantsByProductID(services.ProductVariant))
 	}
 }
 
@@ -167,6 +169,15 @@ func setupAdminCatalogRoutes(router *gin.RouterGroup, services *services.Service
 		products.POST("/", CreateProduct(services.Product))
 		products.PUT("/:id", UpdateProduct(services.Product))
 		products.DELETE("/:id", DeleteProduct(services.Product))
+	}
+
+	// Управление вариантами товаров
+	variants := router.Group("/product-variants")
+	{
+		variants.POST("/", CreateProductVariant(services.ProductVariant))
+		variants.GET("/:id", GetProductVariant(services.ProductVariant))
+		variants.PUT("/:id", UpdateProductVariant(services.ProductVariant))
+		variants.DELETE("/:id", DeleteProductVariant(services.ProductVariant))
 	}
 
 	// Управление категориями

@@ -9,6 +9,7 @@ import (
 type Order struct {
 	ID              uuid.UUID     `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	UserID          uuid.UUID     `json:"user_id" gorm:"type:uuid;not null"`
+	WarehouseID     *uuid.UUID    `json:"warehouse_id" gorm:"type:uuid"` // склад, с которого выполняется заказ
 	OrderNumber     string        `json:"order_number" gorm:"uniqueIndex;not null"`
 	Status          OrderStatus   `json:"status" gorm:"not null;default:'pending'"`
 	TotalAmount     float64       `json:"total_amount" gorm:"not null" validate:"min=0"`
@@ -29,7 +30,8 @@ type Order struct {
 	UpdatedAt       time.Time     `json:"updated_at"`
 
 	// Связи
-	User       User        `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	User      User        `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Warehouse *Warehouse  `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
 	OrderItems []OrderItem `json:"order_items,omitempty" gorm:"foreignKey:OrderID"`
 }
 

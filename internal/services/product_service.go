@@ -18,7 +18,7 @@ func NewProductService(repo repository.ProductRepository) *ProductService {
 	}
 }
 
-func (s *ProductService) Create(name string, description string, basePrice float64, sku string, stock int, isActive bool, brand string, model string, material string, categoryID uuid.UUID, tags []string) (*models.Product, error) {
+func (s *ProductService) Create(name string, description string, basePrice float64, sku string, isActive bool, brand string, model string, material string, categoryID uuid.UUID, tags []string) (*models.Product, error) {
 	// Генерируем slug из названия товара
 	slug := utils.GenerateSlug(name)
 
@@ -28,7 +28,7 @@ func (s *ProductService) Create(name string, description string, basePrice float
 		return err != nil // Если ошибка, значит slug уникален
 	})
 
-	return s.repo.Create(name, uniqueSlug, description, basePrice, sku, stock, isActive, brand, model, material, categoryID.String(), tags)
+	return s.repo.Create(name, uniqueSlug, description, basePrice, sku, isActive, brand, model, material, categoryID.String(), tags)
 }
 
 func (s *ProductService) GetByID(id string) (*models.Product, error) {
@@ -39,14 +39,14 @@ func (s *ProductService) GetBySKU(sku string) (*models.Product, error) {
 	return s.repo.GetBySKU(sku)
 }
 
-func (s *ProductService) Update(id string, name *string, description *string, basePrice *float64, stock *int, isActive *bool, brand *string, model *string, material *string, categoryID *uuid.UUID, tags []string) (*models.Product, error) {
+func (s *ProductService) Update(id string, name *string, description *string, basePrice *float64, isActive *bool, brand *string, model *string, material *string, categoryID *uuid.UUID, tags []string) (*models.Product, error) {
 	var categoryIDStr *string
 	if categoryID != nil {
 		s := categoryID.String()
 		categoryIDStr = &s
 	}
 
-	return s.repo.Update(id, name, description, basePrice, stock, isActive, brand, model, material, categoryIDStr, tags)
+	return s.repo.Update(id, name, description, basePrice, isActive, brand, model, material, categoryIDStr, tags)
 }
 
 func (s *ProductService) Delete(id string) error {

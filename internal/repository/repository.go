@@ -32,11 +32,11 @@ type UserRepository interface {
 }
 
 type ProductRepository interface {
-	Create(name string, slug string, description string, basePrice float64, sku string, stock int, isActive bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error)
+	Create(name string, slug string, description string, basePrice float64, sku string, isActive bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error)
 	GetByID(id string) (*models.Product, error)
 	GetBySlug(slug string) (*models.Product, error)
 	GetBySKU(sku string) (*models.Product, error)
-	Update(id string, name *string, description *string, basePrice *float64, stock *int, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error)
+	Update(id string, name *string, description *string, basePrice *float64, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error)
 	Delete(id string) error
 	List(limit, offset int) ([]*models.Product, error)
 	Search(query string, limit, offset int) ([]*models.Product, error)
@@ -44,11 +44,11 @@ type ProductRepository interface {
 }
 
 type ProductVariantRepository interface {
-	Create(productID string, sku string, name string, color string, size string, price float64, stock int, isActive bool) (*models.ProductVariant, error)
+	Create(productID string, sku string, name string, color string, size string, price float64, isActive bool) (*models.ProductVariant, error)
 	GetByID(id string) (*models.ProductVariant, error)
 	GetBySKU(sku string) (*models.ProductVariant, error)
 	GetByProductID(productID string) ([]*models.ProductVariant, error)
-	Update(id string, sku *string, name *string, color *string, size *string, price *float64, stock *int, isActive *bool) (*models.ProductVariant, error)
+	Update(id string, sku *string, name *string, color *string, size *string, price *float64, isActive *bool) (*models.ProductVariant, error)
 	Delete(id string) error
 }
 

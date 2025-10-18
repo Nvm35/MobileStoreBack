@@ -20,7 +20,6 @@ func CreateProductVariant(productVariantService *services.ProductVariantService)
 			Color     string  `json:"color"`
 			Size      string  `json:"size"`
 			Price     float64 `json:"price" validate:"required,min=0"`
-			Stock     int     `json:"stock" validate:"min=0"`
 			IsActive  bool    `json:"is_active"`
 		}
 
@@ -34,7 +33,7 @@ func CreateProductVariant(productVariantService *services.ProductVariantService)
 			return
 		}
 
-		variant, err := productVariantService.Create(req.ProductID, req.SKU, req.Name, req.Color, req.Size, req.Price, req.Stock, req.IsActive)
+		variant, err := productVariantService.Create(req.ProductID, req.SKU, req.Name, req.Color, req.Size, req.Price, req.IsActive)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -76,6 +75,24 @@ func GetProductVariants(productVariantService *services.ProductVariantService) g
 	}
 }
 
+func GetProductVariantsByProductID(productVariantService *services.ProductVariantService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		productID := c.Param("id")
+		if productID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "product id is required"})
+			return
+		}
+
+		variants, err := productVariantService.GetByProductID(productID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"variants": variants})
+	}
+}
+
 func UpdateProductVariant(productVariantService *services.ProductVariantService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
@@ -86,7 +103,6 @@ func UpdateProductVariant(productVariantService *services.ProductVariantService)
 			Color    *string  `json:"color"`
 			Size     *string  `json:"size"`
 			Price    *float64 `json:"price" validate:"omitempty,min=0"`
-			Stock    *int     `json:"stock" validate:"omitempty,min=0"`
 			IsActive *bool    `json:"is_active"`
 		}
 
@@ -100,7 +116,7 @@ func UpdateProductVariant(productVariantService *services.ProductVariantService)
 			return
 		}
 
-		variant, err := productVariantService.Update(id, req.SKU, req.Name, req.Color, req.Size, req.Price, req.Stock, req.IsActive)
+		variant, err := productVariantService.Update(id, req.SKU, req.Name, req.Color, req.Size, req.Price, req.IsActive)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

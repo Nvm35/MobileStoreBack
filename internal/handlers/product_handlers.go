@@ -85,7 +85,6 @@ func CreateProduct(productService *services.ProductService) gin.HandlerFunc {
 			Description string    `json:"description"`
 			BasePrice   float64   `json:"base_price" validate:"required,min=0"`
 			SKU         string    `json:"sku" validate:"required"`
-			Stock       int       `json:"stock" validate:"min=0"`
 			IsActive    bool      `json:"is_active"`
 			Brand       string    `json:"brand" validate:"required,min=2"`
 			Model       string    `json:"model"`
@@ -106,7 +105,7 @@ func CreateProduct(productService *services.ProductService) gin.HandlerFunc {
 			return
 		}
 
-		product, err := productService.Create(req.Name, req.Description, req.BasePrice, req.SKU, req.Stock, req.IsActive, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
+		product, err := productService.Create(req.Name, req.Description, req.BasePrice, req.SKU, req.IsActive, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -124,7 +123,6 @@ func UpdateProduct(productService *services.ProductService) gin.HandlerFunc {
 			Name        *string    `json:"name" validate:"omitempty,min=2"`
 			Description *string    `json:"description"`
 			BasePrice   *float64   `json:"base_price" validate:"omitempty,min=0"`
-			Stock       *int       `json:"stock" validate:"omitempty,min=0"`
 			IsActive    *bool      `json:"is_active"`
 			Brand       *string    `json:"brand" validate:"omitempty,min=2"`
 			Model       *string    `json:"model"`
@@ -145,7 +143,7 @@ func UpdateProduct(productService *services.ProductService) gin.HandlerFunc {
 			return
 		}
 
-		product, err := productService.Update(id, req.Name, req.Description, req.BasePrice, req.Stock, req.IsActive, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
+		product, err := productService.Update(id, req.Name, req.Description, req.BasePrice, req.IsActive, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

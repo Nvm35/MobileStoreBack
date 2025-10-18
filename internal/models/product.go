@@ -14,7 +14,6 @@ type Product struct {
 	Description string          `json:"description" gorm:"type:text"`
 	BasePrice   float64         `json:"base_price" gorm:"not null" validate:"required,min=0"`
 	SKU         string          `json:"sku" gorm:"uniqueIndex;not null" validate:"required"`
-	Stock       int             `json:"stock" gorm:"not null;default:0" validate:"min=0"`
 	IsActive    bool            `json:"is_active" gorm:"default:true"`
 	Brand       string          `json:"brand" gorm:"not null" validate:"required,min=2"`
 	Model       string          `json:"model"`
@@ -52,14 +51,51 @@ type ProductVariant struct {
 	Color     string    `json:"color" gorm:"type:varchar(100)"`
 	Size      string    `json:"size" gorm:"type:varchar(50)"`
 	Price     float64   `json:"price" gorm:"not null" validate:"required,min=0"`
-	Stock     int       `json:"stock" gorm:"not null;default:0" validate:"min=0"`
 	IsActive  bool      `json:"is_active" gorm:"default:true"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Связи
-	Product   Product    `json:"product,omitempty" gorm:"foreignKey:ProductID"`
-	OrderItems []OrderItem `json:"order_items,omitempty" gorm:"foreignKey:ProductVariantID"`
+	Product     Product           `json:"product,omitempty" gorm:"foreignKey:ProductID"`
+	WarehouseStocks []WarehouseStock `json:"warehouse_stocks,omitempty" gorm:"foreignKey:ProductVariantID"`
+	OrderItems  []OrderItem       `json:"order_items,omitempty" gorm:"foreignKey:ProductVariantID"`
+}
+
+// Warehouse - склад/филиал
+type Warehouse struct {
+	ID          uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Name        string    `json:"name" gorm:"not null" validate:"required,min=2"`
+	Address     string    `json:"address" gorm:"not null" validate:"required"`
+	City        string    `json:"city" gorm:"not null" validate:"required"`
+	Phone       string    `json:"phone" gorm:"type:varchar(20)"`
+	Email       string    `json:"email" gorm:"type:varchar(255)"`
+	IsActive    bool      `json:"is_active" gorm:"default:true"`
+	IsMain      bool      `json:"is_main" gorm:"default:false"` // главный склад
+	ManagerName string    `json:"manager_name" gorm:"type:varchar(255)"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+
+	// Связи
+	WarehouseStocks []WarehouseStock `json:"warehouse_stocks,omitempty" gorm:"foreignKey:WarehouseID"`
+	Orders          []Order          `json:"orders,omitempty" gorm:"foreignKey:WarehouseID"`
+}
+
+// WarehouseStock - остатки товаров по складам
+type WarehouseStock struct {
+	ID               uuid.UUID      `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	WarehouseID      uuid.UUID      `json:"warehouse_id" gorm:"type:uuid;not null"`
+	ProductVariantID uuid.UUID      `json:"product_variant_id" gorm:"type:uuid;not null"`
+	Stock            int            `json:"stock" gorm:"not null;default:0" validate:"min=0"`
+	ReservedStock    int            `json:"reserved_stock" gorm:"not null;default:0" validate:"min=0"` // зарезервированный товар
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+
+	// Связи
+	Warehouse      Warehouse      `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
+	ProductVariant ProductVariant `json:"product_variant,omitempty" gorm:"foreignKey:ProductVariantID"`
+
+	// Уникальный индекс для комбинации склада и варианта товара
+	// UNIQUE(warehouse_id, product_variant_id)
 }
 
 type Image struct {
