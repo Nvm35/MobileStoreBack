@@ -51,6 +51,7 @@ func main() {
 	// Middleware
 	router.Use(middleware.CORS())
 	router.Use(middleware.Logger(logger))
+	router.Use(middleware.ErrorHandler(logger))
 	router.Use(middleware.Recovery(logger))
 
 	// Инициализация обработчиков

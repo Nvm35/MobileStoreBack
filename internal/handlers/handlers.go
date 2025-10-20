@@ -9,6 +9,9 @@ import (
 )
 
 func SetupRoutes(router *gin.Engine, services *services.Services, cfg *config.Config) {
+	// Health check (без /api префикса)
+	router.GET("/health", HealthCheck())
+	
 	api := router.Group("/api")
 	{
 		setupPublicRoutes(api, services)
