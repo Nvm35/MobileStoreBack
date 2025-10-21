@@ -53,16 +53,20 @@ func (s *ProductService) Delete(id string) error {
 	return s.repo.Delete(id)
 }
 
-func (s *ProductService) List(limit, offset int) ([]*models.Product, error) {
-	return s.repo.List(limit, offset)
+func (s *ProductService) List() ([]*models.Product, error) {
+	return s.repo.List()
 }
 
-func (s *ProductService) Search(query string, limit, offset int) ([]*models.Product, error) {
-	return s.repo.Search(query, limit, offset)
+func (s *ProductService) Search(query string) ([]*models.Product, error) {
+	return s.repo.Search(query)
 }
 
-func (s *ProductService) GetByCategory(categoryID string, limit, offset int) ([]*models.Product, error) {
-	return s.repo.GetByCategory(categoryID, limit, offset)
+func (s *ProductService) GetByCategory(categoryID string) ([]*models.Product, error) {
+	return s.repo.GetByCategory(categoryID)
+}
+
+func (s *ProductService) ListWithFilters(brand, minPrice, maxPrice string) ([]*models.Product, error) {
+	return s.repo.ListWithFilters(brand, minPrice, maxPrice)
 }
 
 // GetBySlug получает товар по slug

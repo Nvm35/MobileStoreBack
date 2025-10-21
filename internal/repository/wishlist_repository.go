@@ -20,12 +20,10 @@ func NewWishlistRepository(db *gorm.DB, redis *redis.Client) WishlistRepository 
 	}
 }
 
-func (r *wishlistRepository) GetByUserID(userID string, limit, offset int) ([]models.WishlistItem, error) {
+func (r *wishlistRepository) GetByUserID(userID string) ([]models.WishlistItem, error) {
 	var items []models.WishlistItem
 	err := r.db.Where("user_id = ?", userID).
 		Preload("Product").
-		Limit(limit).
-		Offset(offset).
 		Order("created_at DESC").
 		Find(&items).Error
 	return items, err

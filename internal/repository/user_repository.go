@@ -131,9 +131,9 @@ func (r *userRepository) Delete(id string) error {
 	return r.db.Delete(&models.User{}, "id = ?", id).Error
 }
 
-func (r *userRepository) List(limit, offset int) ([]*models.User, error) {
+func (r *userRepository) List() ([]*models.User, error) {
 	var users []*models.User
-	if err := r.db.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+	if err := r.db.Find(&users).Error; err != nil {
 		return nil, err
 	}
 	return users, nil

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/services"
@@ -13,10 +12,7 @@ import (
 
 func GetCategories(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-
-		categories, err := categoryService.GetAll(limit, offset)
+		categories, err := categoryService.GetAll()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -57,10 +53,8 @@ func GetCategoryBySlug(categoryService *services.CategoryService) gin.HandlerFun
 func GetCategoryProducts(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-		category, err := categoryService.GetWithProducts(id, limit, offset)
+		category, err := categoryService.GetWithProducts(id)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
 			return
@@ -76,26 +70,17 @@ func GetCategoryProducts(categoryService *services.CategoryService) gin.HandlerF
 func GetCategoryProductsBySlug(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		slug := c.Param("slug")
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-		// Сначала получаем категорию по slug
-		category, err := categoryService.GetBySlug(slug)
+		// Получаем категорию с продуктами по slug
+		category, err := categoryService.GetBySlugWithProducts(slug)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
 			return
 		}
 
-		// Затем получаем продукты этой категории
-		categoryWithProducts, err := categoryService.GetWithProducts(category.ID.String(), limit, offset)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
 		c.JSON(http.StatusOK, gin.H{
 			"category": category,
-			"products": categoryWithProducts.Products,
+			"products": category.Products,
 		})
 	}
 }

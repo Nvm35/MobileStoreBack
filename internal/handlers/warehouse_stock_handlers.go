@@ -4,7 +4,6 @@ import (
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -42,77 +41,42 @@ func GetVariantStocks(warehouseStockService *services.WarehouseStockService) gin
 	}
 }
 
-// GetAvailabilityInfo - получение информации о доступности товара
+// GetAvailabilityInfo - устаревший эндпоинт, функциональность объединена с GetVariantStocks
 func GetAvailabilityInfo(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		sku := c.Param("sku")
-
-		availability, err := warehouseStockService.GetAvailabilityInfoBySKU(sku)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"availability": availability})
+		c.JSON(http.StatusMovedPermanently, gin.H{
+			"message":      "Use GET /stocks/variant/:sku instead",
+			"new_endpoint": "/stocks/variant/:sku",
+		})
 	}
 }
 
-// CheckAvailability - проверка доступности товара
+// CheckAvailability - устаревший эндпоинт, функциональность объединена с GetVariantStocks
 func CheckAvailability(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		sku := c.Param("sku")
-		quantity, _ := strconv.Atoi(c.DefaultQuery("quantity", "1"))
-
-		available, err := warehouseStockService.CheckAvailabilityBySKU(sku, quantity)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"available": available,
-			"quantity":  quantity,
-			"sku":       sku,
+		c.JSON(http.StatusMovedPermanently, gin.H{
+			"message":      "Use GET /stocks/variant/:sku instead",
+			"new_endpoint": "/stocks/variant/:sku",
 		})
 	}
 }
 
-// CheckAvailabilityByWarehouse - проверка доступности товара на конкретном складе
+// CheckAvailabilityByWarehouse - устаревший эндпоинт, функциональность объединена с GetWarehouseStocks
 func CheckAvailabilityByWarehouse(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		warehouseSlug := c.Param("warehouse_slug")
-		sku := c.Param("sku")
-		quantity, _ := strconv.Atoi(c.DefaultQuery("quantity", "1"))
-
-		available, err := warehouseStockService.CheckAvailabilityByWarehouseSlug(warehouseSlug, sku, quantity)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"available":       available,
-			"quantity":        quantity,
-			"warehouse_slug":  warehouseSlug,
-			"sku":            sku,
+		c.JSON(http.StatusMovedPermanently, gin.H{
+			"message":      "Use GET /stocks/warehouse/:warehouse_slug instead",
+			"new_endpoint": "/stocks/warehouse/:warehouse_slug",
 		})
 	}
 }
 
-// GetTotalAvailableStock - получение общего доступного остатка товара
+// GetTotalAvailableStock - устаревший эндпоинт, функциональность объединена с GetVariantStocks
 func GetTotalAvailableStock(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		sku := c.Param("sku")
-
-		totalStock, err := warehouseStockService.GetAvailableStockBySKU(sku)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"total_available_stock": totalStock,
-			"sku":                  sku,
+		c.JSON(http.StatusMovedPermanently, gin.H{
+			"message":      "Use GET /stocks/variant/:sku instead",
+			"new_endpoint": "/stocks/variant/:sku",
 		})
 	}
 }

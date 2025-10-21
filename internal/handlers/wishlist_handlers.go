@@ -3,7 +3,6 @@ package handlers
 import (
 	"mobile-store-back/internal/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -13,11 +12,8 @@ import (
 func GetWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
-		
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-		items, err := wishlistService.GetByUserID(userID.(string), limit, offset)
+		items, err := wishlistService.GetByUserID(userID.(string))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

@@ -15,8 +15,8 @@ func NewCategoryService(repo repository.CategoryRepository) *CategoryService {
 	}
 }
 
-func (s *CategoryService) GetAll(limit, offset int) ([]*models.Category, error) {
-	return s.repo.GetAll(limit, offset)
+func (s *CategoryService) GetAll() ([]*models.Category, error) {
+	return s.repo.GetAll()
 }
 
 func (s *CategoryService) GetByID(id string) (*models.Category, error) {
@@ -39,7 +39,11 @@ func (s *CategoryService) Delete(id string) error {
 	return s.repo.Delete(id)
 }
 
-func (s *CategoryService) GetWithProducts(id string, limit, offset int) (*models.Category, error) {
-	return s.repo.GetWithProducts(id, limit, offset)
+func (s *CategoryService) GetWithProducts(id string) (*models.Category, error) {
+	return s.repo.GetWithProducts(id)
+}
+
+func (s *CategoryService) GetBySlugWithProducts(slug string) (*models.Category, error) {
+	return s.repo.GetBySlugWithProducts(slug)
 }
 

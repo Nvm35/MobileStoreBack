@@ -20,12 +20,10 @@ func NewReviewRepository(db *gorm.DB, redis *redis.Client) ReviewRepository {
 	}
 }
 
-func (r *reviewRepository) GetByProductID(productID string, limit, offset int) ([]models.Review, error) {
+func (r *reviewRepository) GetByProductID(productID string) ([]models.Review, error) {
 	var reviews []models.Review
 	err := r.db.Where("product_id = ? AND is_approved = ?", productID, true).
 		Preload("User").
-		Limit(limit).
-		Offset(offset).
 		Order("created_at DESC").
 		Find(&reviews).Error
 	return reviews, err
@@ -98,22 +96,18 @@ func (r *reviewRepository) Vote(id string, userID string, helpful bool) error {
 	return nil
 }
 
-func (r *reviewRepository) GetByUserID(userID string, limit, offset int) ([]models.Review, error) {
+func (r *reviewRepository) GetByUserID(userID string) ([]models.Review, error) {
 	var reviews []models.Review
 	err := r.db.Where("user_id = ?", userID).
 		Preload("Product").
-		Limit(limit).
-		Offset(offset).
 		Order("created_at DESC").
 		Find(&reviews).Error
 	return reviews, err
 }
 
-func (r *reviewRepository) GetAll(limit, offset int) ([]models.Review, error) {
+func (r *reviewRepository) GetAll() ([]models.Review, error) {
 	var reviews []models.Review
 	err := r.db.Preload("User").Preload("Product").
-		Limit(limit).
-		Offset(offset).
 		Order("created_at DESC").
 		Find(&reviews).Error
 	return reviews, err

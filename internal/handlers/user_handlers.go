@@ -3,7 +3,6 @@ package handlers
 import (
 	"mobile-store-back/internal/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -57,10 +56,7 @@ func UpdateProfile(userService *services.UserService) gin.HandlerFunc {
 
 func GetUsers(userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-
-		users, err := userService.List(limit, offset)
+		users, err := userService.List()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

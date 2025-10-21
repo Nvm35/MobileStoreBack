@@ -59,10 +59,9 @@ func (r *warehouseRepository) GetMain() (*models.Warehouse, error) {
 	return &warehouse, err
 }
 
-func (r *warehouseRepository) List(limit, offset int) ([]*models.Warehouse, error) {
+func (r *warehouseRepository) List() ([]*models.Warehouse, error) {
 	var warehouses []*models.Warehouse
 	err := r.db.Where("is_active = ?", true).
-		Limit(limit).Offset(offset).
 		Order("is_main DESC, name ASC").
 		Find(&warehouses).Error
 	return warehouses, err

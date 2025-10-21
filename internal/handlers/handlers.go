@@ -46,19 +46,10 @@ func setupAuthRoutes(router *gin.RouterGroup, services *services.Services) {
 }
 
 func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
-	// Категории (публичные)
-	categories := router.Group("/categories")
-	{
-		categories.GET("/", GetCategories(services.Category))
-		categories.GET("/:slug", GetCategoryBySlug(services.Category))
-		categories.GET("/:slug/products", GetCategoryProductsBySlug(services.Category))
-	}
-
-	// Продукты (публичные) - исправлен порядок для избежания конфликтов
+	// Продукты (публичные) - основной эндпоинт с поиском и фильтрацией
 	products := router.Group("/products")
 	{
-		products.GET("/", GetProducts(services.Product))
-		products.GET("/search", SearchProducts(services.Product)) // поиск должен быть перед /:slug
+		products.GET("/", GetProducts(services.Product)) // поддерживает поиск и фильтрацию через query параметры
 		products.GET("/:slug", GetProduct(services.Product)) // поддерживает и slug, и ID
 		products.GET("/:slug/reviews", GetProductReviews(services.Review))
 		products.GET("/:slug/variants", GetProductVariantsByProductID(services.ProductVariant))
@@ -81,12 +72,6 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 		
 		// Остатки по варианту товара (используем SKU вместо ID)
 		stocks.GET("/variant/:sku", GetVariantStocks(services.WarehouseStock))
-		stocks.GET("/variant/:sku/availability", GetAvailabilityInfo(services.WarehouseStock))
-		stocks.GET("/variant/:sku/check", CheckAvailability(services.WarehouseStock))
-		stocks.GET("/variant/:sku/total", GetTotalAvailableStock(services.WarehouseStock))
-		
-		// Проверка доступности на конкретном складе
-		stocks.GET("/warehouse/:warehouse_slug/variant/:sku/check", CheckAvailabilityByWarehouse(services.WarehouseStock))
 	}
 
 	// Изображения товаров (публичные)
@@ -97,8 +82,7 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 
 
 	// Дополнительные удобные маршруты для фронтенда
-	router.GET("/search", SearchProducts(services.Product)) // глобальный поиск
-	router.GET("/warehouses", GetWarehouses(services.Warehouse)) // альтернативный путь к складам
+	router.GET("/search", SearchProducts(services.Product)) // устаревший эндпоинт, перенаправляет на /products
 }
 
 // ============================================================================
@@ -224,6 +208,7 @@ func setupAdminCatalogRoutes(router *gin.RouterGroup, services *services.Service
 	// Управление категориями
 	categories := router.Group("/categories")
 	{
+		categories.GET("/", GetCategories(services.Category))
 		categories.POST("/", CreateCategory(services.Category))
 		categories.GET("/:id", GetCategory(services.Category))
 		categories.PUT("/:id", UpdateCategory(services.Category))

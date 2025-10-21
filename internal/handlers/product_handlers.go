@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -12,10 +12,27 @@ import (
 
 func GetProducts(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		// Поддержка фильтрации и поиска в одном эндпоинте
+		query := c.Query("q")
+		categoryID := c.Query("category_id")
+		brand := c.Query("brand")
+		minPrice := c.Query("min_price")
+		maxPrice := c.Query("max_price")
 
-		products, err := productService.List(limit, offset)
+		var products []*models.Product
+		var err error
+
+		if query != "" {
+			// Поиск товаров
+			products, err = productService.Search(query)
+		} else if categoryID != "" {
+			// Фильтр по категории
+			products, err = productService.GetByCategory(categoryID)
+		} else {
+			// Получить все товары с фильтрами
+			products, err = productService.ListWithFilters(brand, minPrice, maxPrice)
+		}
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -40,41 +57,23 @@ func GetProduct(productService *services.ProductService) gin.HandlerFunc {
 	}
 }
 
+// SearchProducts - устаревший эндпоинт, функциональность перенесена в GetProducts
 func SearchProducts(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		query := c.Query("q")
-		if query == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'q' is required"})
-			return
-		}
-
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-
-		products, err := productService.Search(query, limit, offset)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"products": products})
+		c.JSON(http.StatusMovedPermanently, gin.H{
+			"message":      "Use GET /products?q=search_term instead",
+			"new_endpoint": "/products",
+		})
 	}
 }
 
+// GetProductsByCategory - устаревший эндпоинт, функциональность перенесена в GetProducts
 func GetProductsByCategory(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		categoryID := c.Param("category_id")
-		
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-
-		products, err := productService.GetByCategory(categoryID, limit, offset)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"products": products})
+		c.JSON(http.StatusMovedPermanently, gin.H{
+			"message":      "Use GET /products?category_id=category_id instead",
+			"new_endpoint": "/products",
+		})
 	}
 }
 

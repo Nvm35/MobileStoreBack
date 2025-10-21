@@ -13,8 +13,8 @@ func NewWishlistService(repo repository.WishlistRepository) *WishlistService {
 	return &WishlistService{repo: repo}
 }
 
-func (s *WishlistService) GetByUserID(userID string, limit, offset int) ([]models.WishlistItem, error) {
-	return s.repo.GetByUserID(userID, limit, offset)
+func (s *WishlistService) GetByUserID(userID string) ([]models.WishlistItem, error) {
+	return s.repo.GetByUserID(userID)
 }
 
 func (s *WishlistService) AddItem(userID string, productID string) (*models.WishlistItem, error) {

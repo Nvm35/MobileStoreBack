@@ -37,12 +37,12 @@ func (r *orderRepository) GetByID(id string) (*models.Order, error) {
 	return &order, nil
 }
 
-func (r *orderRepository) GetByUserID(userID string, limit, offset int) ([]*models.Order, error) {
+func (r *orderRepository) GetByUserID(userID string) ([]*models.Order, error) {
 	var orders []*models.Order
 	if err := r.db.Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.ProductVariant").
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
-		Limit(limit).Offset(offset).Find(&orders).Error; err != nil {
+		Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil
@@ -103,11 +103,11 @@ func (r *orderRepository) Delete(id string) error {
 	return r.db.Delete(&models.Order{}, "id = ?", id).Error
 }
 
-func (r *orderRepository) List(limit, offset int) ([]*models.Order, error) {
+func (r *orderRepository) List() ([]*models.Order, error) {
 	var orders []*models.Order
 	if err := r.db.Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.ProductVariant").
 		Order("created_at DESC").
-		Limit(limit).Offset(offset).Find(&orders).Error; err != nil {
+		Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil

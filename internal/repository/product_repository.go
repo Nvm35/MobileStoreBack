@@ -136,32 +136,52 @@ func (r *productRepository) Delete(id string) error {
 	return r.db.Delete(&models.Product{}, "id = ?", id).Error
 }
 
-func (r *productRepository) List(limit, offset int) ([]*models.Product, error) {
+func (r *productRepository) List() ([]*models.Product, error) {
 	var products []*models.Product
-	if err := r.db.Preload("Category").Preload("Images").Limit(limit).Offset(offset).Find(&products).Error; err != nil {
+	if err := r.db.Preload("Category").Preload("Images").Where("is_active = ?", true).Order("created_at DESC").Find(&products).Error; err != nil {
 		return nil, err
 	}
 	return products, nil
 }
 
-func (r *productRepository) Search(query string, limit, offset int) ([]*models.Product, error) {
+func (r *productRepository) Search(query string) ([]*models.Product, error) {
 	var products []*models.Product
 	searchQuery := "%" + strings.ToLower(query) + "%"
 	
 	if err := r.db.Preload("Category").Preload("Images").
-		Where("LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(model) LIKE ?", 
-			searchQuery, searchQuery, searchQuery, searchQuery).
-		Limit(limit).Offset(offset).Find(&products).Error; err != nil {
+		Where("is_active = ? AND (LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(model) LIKE ?)", 
+			true, searchQuery, searchQuery, searchQuery, searchQuery).
+		Order("created_at DESC").Find(&products).Error; err != nil {
 		return nil, err
 	}
 	return products, nil
 }
 
-func (r *productRepository) GetByCategory(categoryID string, limit, offset int) ([]*models.Product, error) {
+func (r *productRepository) GetByCategory(categoryID string) ([]*models.Product, error) {
 	var products []*models.Product
 	if err := r.db.Preload("Category").Preload("Images").
-		Where("category_id = ?", categoryID).
-		Limit(limit).Offset(offset).Find(&products).Error; err != nil {
+		Where("category_id = ? AND is_active = ?", categoryID, true).
+		Order("created_at DESC").Find(&products).Error; err != nil {
+		return nil, err
+	}
+	return products, nil
+}
+
+func (r *productRepository) ListWithFilters(brand, minPrice, maxPrice string) ([]*models.Product, error) {
+	var products []*models.Product
+	query := r.db.Preload("Category").Preload("Images").Where("is_active = ?", true)
+	
+	if brand != "" {
+		query = query.Where("brand = ?", brand)
+	}
+	if minPrice != "" {
+		query = query.Where("base_price >= ?", minPrice)
+	}
+	if maxPrice != "" {
+		query = query.Where("base_price <= ?", maxPrice)
+	}
+	
+	if err := query.Order("created_at DESC").Find(&products).Error; err != nil {
 		return nil, err
 	}
 	return products, nil

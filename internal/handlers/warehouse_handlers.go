@@ -4,7 +4,6 @@ import (
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,10 +11,7 @@ import (
 // GetWarehouses - получение списка складов
 func GetWarehouses(warehouseService *services.WarehouseService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-
-		warehouses, err := warehouseService.List(limit, offset)
+		warehouses, err := warehouseService.List()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

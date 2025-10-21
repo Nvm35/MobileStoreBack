@@ -3,7 +3,6 @@ package handlers
 import (
 	"mobile-store-back/internal/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -14,11 +13,8 @@ import (
 func GetProductReviews(reviewService *services.ReviewService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		identifier := c.Param("slug") // Может быть как slug, так и ID
-		
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-		reviews, err := reviewService.GetByProductSlugOrID(identifier, limit, offset)
+		reviews, err := reviewService.GetByProductSlugOrID(identifier)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -155,11 +151,8 @@ func VoteReview(reviewService *services.ReviewService) gin.HandlerFunc {
 func GetUserReviews(reviewService *services.ReviewService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
-		
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-		reviews, err := reviewService.GetByUserID(userID.(string), limit, offset)
+		reviews, err := reviewService.GetByUserID(userID.(string))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -172,10 +165,7 @@ func GetUserReviews(reviewService *services.ReviewService) gin.HandlerFunc {
 // GetAllReviews - получение всех отзывов (админ)
 func GetAllReviews(reviewService *services.ReviewService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-
-		reviews, err := reviewService.GetAll(limit, offset)
+		reviews, err := reviewService.GetAll()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

@@ -30,7 +30,7 @@ type UserRepository interface {
 	UpdateProfile(userID string, firstName *string, lastName *string, phone *string) (*models.User, error)
 	Update(id string, firstName *string, lastName *string, phone *string, isActive *bool, isAdmin *bool) (*models.User, error)
 	Delete(id string) error
-	List(limit, offset int) ([]*models.User, error)
+	List() ([]*models.User, error)
 }
 
 type ProductRepository interface {
@@ -40,9 +40,10 @@ type ProductRepository interface {
 	GetBySKU(sku string) (*models.Product, error)
 	Update(id string, name *string, description *string, basePrice *float64, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error)
 	Delete(id string) error
-	List(limit, offset int) ([]*models.Product, error)
-	Search(query string, limit, offset int) ([]*models.Product, error)
-	GetByCategory(categoryID string, limit, offset int) ([]*models.Product, error)
+	List() ([]*models.Product, error)
+	Search(query string) ([]*models.Product, error)
+	GetByCategory(categoryID string) ([]*models.Product, error)
+	ListWithFilters(brand, minPrice, maxPrice string) ([]*models.Product, error)
 }
 
 type ProductVariantRepository interface {
@@ -61,11 +62,11 @@ type OrderRepository interface {
 		Quantity         int
 	}, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string) (*models.Order, error)
 	GetByID(id string) (*models.Order, error)
-	GetByUserID(userID string, limit, offset int) ([]*models.Order, error)
+	GetByUserID(userID string) ([]*models.Order, error)
 	Update(id string, userID string, status *string, paymentStatus *string, trackingNumber *string, customerNotes *string, shippingMethod *string, shippingAddress *string, pickupPoint *string) (*models.Order, error)
 	UpdateStatus(id string, status string, trackingNumber *string) (*models.Order, error)
 	Delete(id string) error
-	List(limit, offset int) ([]*models.Order, error)
+	List() ([]*models.Order, error)
 }
 
 type AuthRepository interface {
@@ -85,7 +86,7 @@ type CartRepository interface {
 }
 
 type WishlistRepository interface {
-	GetByUserID(userID string, limit, offset int) ([]models.WishlistItem, error)
+	GetByUserID(userID string) ([]models.WishlistItem, error)
 	AddItem(userID string, productID string) (*models.WishlistItem, error)
 	RemoveItem(id string, userID string) error
 	IsInWishlist(userID string, productID string) (bool, error)
@@ -93,25 +94,26 @@ type WishlistRepository interface {
 }
 
 type ReviewRepository interface {
-	GetByProductID(productID string, limit, offset int) ([]models.Review, error)
+	GetByProductID(productID string) ([]models.Review, error)
 	Create(userID string, productID string, orderID *string, rating int, title string, comment string) (*models.Review, error)
 	Update(id string, userID string, rating *int, title *string, comment *string) (*models.Review, error)
 	Delete(id string, userID string) error
 	Vote(id string, userID string, helpful bool) error
-	GetByUserID(userID string, limit, offset int) ([]models.Review, error)
-	GetAll(limit, offset int) ([]models.Review, error)
+	GetByUserID(userID string) ([]models.Review, error)
+	GetAll() ([]models.Review, error)
 	Approve(id string, approved bool) error
 }
 
 
 type CategoryRepository interface {
-	GetAll(limit, offset int) ([]*models.Category, error)
+	GetAll() ([]*models.Category, error)
 	GetByID(id string) (*models.Category, error)
 	GetBySlug(slug string) (*models.Category, error)
 	Create(category *models.Category) error
 	Update(id string, name *string, description *string, slug *string, imageURL *string) (*models.Category, error)
 	Delete(id string) error
-	GetWithProducts(id string, limit, offset int) (*models.Category, error)
+	GetWithProducts(id string) (*models.Category, error)
+	GetBySlugWithProducts(slug string) (*models.Category, error)
 }
 
 type WarehouseRepository interface {
@@ -121,7 +123,7 @@ type WarehouseRepository interface {
 	GetBySlugOrID(identifier string) (*models.Warehouse, error)
 	GetByCity(city string) ([]*models.Warehouse, error)
 	GetMain() (*models.Warehouse, error)
-	List(limit, offset int) ([]*models.Warehouse, error)
+	List() ([]*models.Warehouse, error)
 	Update(id string, name *string, address *string, city *string, phone *string, email *string, isActive *bool, managerName *string) (*models.Warehouse, error)
 	Delete(id string) error
 }

@@ -14,8 +14,8 @@ func NewReviewService(repo repository.ReviewRepository) *ReviewService {
 	return &ReviewService{repo: repo}
 }
 
-func (s *ReviewService) GetByProductID(productID string, limit, offset int) ([]models.Review, error) {
-	return s.repo.GetByProductID(productID, limit, offset)
+func (s *ReviewService) GetByProductID(productID string) ([]models.Review, error) {
+	return s.repo.GetByProductID(productID)
 }
 
 func (s *ReviewService) Create(userID string, productID string, orderID *string, rating int, title string, comment string) (*models.Review, error) {
@@ -34,12 +34,12 @@ func (s *ReviewService) Vote(id string, userID string, helpful bool) error {
 	return s.repo.Vote(id, userID, helpful)
 }
 
-func (s *ReviewService) GetByUserID(userID string, limit, offset int) ([]models.Review, error) {
-	return s.repo.GetByUserID(userID, limit, offset)
+func (s *ReviewService) GetByUserID(userID string) ([]models.Review, error) {
+	return s.repo.GetByUserID(userID)
 }
 
-func (s *ReviewService) GetAll(limit, offset int) ([]models.Review, error) {
-	return s.repo.GetAll(limit, offset)
+func (s *ReviewService) GetAll() ([]models.Review, error) {
+	return s.repo.GetAll()
 }
 
 func (s *ReviewService) Approve(id string, approved bool) error {
@@ -47,7 +47,7 @@ func (s *ReviewService) Approve(id string, approved bool) error {
 }
 
 // GetByProductSlugOrID - получение отзывов по slug или ID продукта
-func (s *ReviewService) GetByProductSlugOrID(identifier string, limit, offset int) ([]models.Review, error) {
+func (s *ReviewService) GetByProductSlugOrID(identifier string) ([]models.Review, error) {
 	// Пока возвращаем ошибку, так как нужен доступ к ProductService
 	return nil, errors.New("not implemented - need ProductService dependency")
 }

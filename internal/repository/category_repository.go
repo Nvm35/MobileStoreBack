@@ -19,19 +19,10 @@ func NewCategoryRepository(db *gorm.DB, redis *redis.Client) CategoryRepository 
 	}
 }
 
-func (r *categoryRepository) GetAll(limit, offset int) ([]*models.Category, error) {
+func (r *categoryRepository) GetAll() ([]*models.Category, error) {
 	var categories []*models.Category
 	
-	query := r.db.Order("name ASC")
-	
-	if limit > 0 {
-		query = query.Limit(limit)
-	}
-	if offset > 0 {
-		query = query.Offset(offset)
-	}
-	
-	err := query.Find(&categories).Error
+	err := r.db.Order("name ASC").Find(&categories).Error
 	return categories, err
 }
 
@@ -86,20 +77,29 @@ func (r *categoryRepository) Delete(id string) error {
 	return r.db.Where("id = ?", id).Delete(&models.Category{}).Error
 }
 
-func (r *categoryRepository) GetWithProducts(id string, limit, offset int) (*models.Category, error) {
+func (r *categoryRepository) GetWithProducts(id string) (*models.Category, error) {
 	var category models.Category
 	
 	// Загружаем категорию с продуктами
 	query := r.db.Preload("Products", func(db *gorm.DB) *gorm.DB {
-		productQuery := db.Where("is_active = ?", true)
-		if limit > 0 {
-			productQuery = productQuery.Limit(limit)
-		}
-		if offset > 0 {
-			productQuery = productQuery.Offset(offset)
-		}
-		return productQuery.Order("created_at DESC")
+		return db.Where("is_active = ?", true).Order("created_at DESC")
 	}).Where("id = ?", id)
+	
+	err := query.First(&category).Error
+	if err != nil {
+		return nil, err
+	}
+	
+	return &category, nil
+}
+
+func (r *categoryRepository) GetBySlugWithProducts(slug string) (*models.Category, error) {
+	var category models.Category
+	
+	// Загружаем категорию с продуктами по slug
+	query := r.db.Preload("Products", func(db *gorm.DB) *gorm.DB {
+		return db.Where("is_active = ?", true).Order("created_at DESC")
+	}).Where("slug = ?", slug)
 	
 	err := query.First(&category).Error
 	if err != nil {

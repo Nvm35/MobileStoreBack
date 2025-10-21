@@ -39,8 +39,8 @@ func (s *WarehouseService) GetMain() (*models.Warehouse, error) {
 	return s.repo.GetMain()
 }
 
-func (s *WarehouseService) List(limit, offset int) ([]*models.Warehouse, error) {
-	return s.repo.List(limit, offset)
+func (s *WarehouseService) List() ([]*models.Warehouse, error) {
+	return s.repo.List()
 }
 
 func (s *WarehouseService) Update(id string, name *string, address *string, city *string, phone *string, email *string, isActive *bool, managerName *string) (*models.Warehouse, error) {

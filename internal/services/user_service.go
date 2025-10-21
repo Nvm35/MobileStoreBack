@@ -35,6 +35,6 @@ func (s *UserService) Delete(id string) error {
 	return s.repo.Delete(id)
 }
 
-func (s *UserService) List(limit, offset int) ([]*models.User, error) {
-	return s.repo.List(limit, offset)
+func (s *UserService) List() ([]*models.User, error) {
+	return s.repo.List()
 }

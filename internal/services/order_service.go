@@ -52,8 +52,8 @@ func (s *OrderService) GetByID(id string) (*models.Order, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *OrderService) GetByUserID(userID string, limit, offset int) ([]*models.Order, error) {
-	return s.repo.GetByUserID(userID, limit, offset)
+func (s *OrderService) GetByUserID(userID string) ([]*models.Order, error) {
+	return s.repo.GetByUserID(userID)
 }
 
 func (s *OrderService) Update(id string, userID string, status *string, paymentStatus *string, trackingNumber *string, customerNotes *string, shippingMethod *string, shippingAddress *string, pickupPoint *string) (*models.Order, error) {
@@ -68,6 +68,6 @@ func (s *OrderService) Delete(id string) error {
 	return s.repo.Delete(id)
 }
 
-func (s *OrderService) List(limit, offset int) ([]*models.Order, error) {
-	return s.repo.List(limit, offset)
+func (s *OrderService) List() ([]*models.Order, error) {
+	return s.repo.List()
 }

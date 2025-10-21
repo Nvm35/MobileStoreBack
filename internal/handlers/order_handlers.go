@@ -3,7 +3,6 @@ package handlers
 import (
 	"mobile-store-back/internal/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -74,11 +73,8 @@ func CreateOrder(orderService *services.OrderService) gin.HandlerFunc {
 func GetUserOrders(orderService *services.OrderService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
-		
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-		orders, err := orderService.GetByUserID(userID.(string), limit, offset)
+		orders, err := orderService.GetByUserID(userID.(string))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -144,10 +140,7 @@ func UpdateOrder(orderService *services.OrderService) gin.HandlerFunc {
 
 func GetAllOrders(orderService *services.OrderService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-
-		orders, err := orderService.List(limit, offset)
+		orders, err := orderService.List()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
