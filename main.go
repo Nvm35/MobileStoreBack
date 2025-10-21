@@ -48,7 +48,7 @@ func main() {
 	// Инициализация роутера
 	router := gin.Default()
 
-	// Middleware
+	// Middleware - CORS должен быть первым
 	router.Use(middleware.CORS())
 	router.Use(middleware.Logger(logger))
 	router.Use(middleware.ErrorHandler(logger))

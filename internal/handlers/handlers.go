@@ -12,6 +12,9 @@ func SetupRoutes(router *gin.Engine, services *services.Services, cfg *config.Co
 	// Health check (без /api префикса)
 	router.GET("/health", HealthCheck())
 	
+	// CORS test endpoint
+	router.GET("/cors-test", CORSTest())
+	
 	api := router.Group("/api")
 	{
 		setupPublicRoutes(api, services)

@@ -18,3 +18,14 @@ func HealthCheck() gin.HandlerFunc {
 	}
 }
 
+// CORSTest - тест CORS
+func CORSTest() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "CORS test successful",
+			"origin":  c.Request.Header.Get("Origin"),
+			"method":  c.Request.Method,
+		})
+	}
+}
+
