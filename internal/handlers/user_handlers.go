@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"mobile-store-back/internal/services"
+	"mobile-store-back/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 func GetProfile(userService *services.UserService) gin.HandlerFunc {
@@ -32,21 +32,13 @@ func UpdateProfile(userService *services.UserService) gin.HandlerFunc {
 			Phone     *string `json:"phone" validate:"omitempty,e164"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		user, err := userService.UpdateProfile(userID.(string), req.FirstName, req.LastName, req.Phone)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -57,8 +49,8 @@ func UpdateProfile(userService *services.UserService) gin.HandlerFunc {
 func GetUsers(userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		users, err := userService.List()
+		utils.HandleInternalError(c, err)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -71,8 +63,8 @@ func GetUser(userService *services.UserService) gin.HandlerFunc {
 		id := c.Param("id")
 		
 		user, err := userService.GetByID(id)
+		utils.HandleNotFound(c, err, "User not found")
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
 
@@ -92,21 +84,13 @@ func UpdateUser(userService *services.UserService) gin.HandlerFunc {
 			IsAdmin   *bool   `json:"is_admin"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		user, err := userService.Update(id, req.FirstName, req.LastName, req.Phone, req.IsActive, req.IsAdmin)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -119,8 +103,8 @@ func DeleteUser(userService *services.UserService) gin.HandlerFunc {
 		id := c.Param("id")
 		
 		err := userService.Delete(id)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 

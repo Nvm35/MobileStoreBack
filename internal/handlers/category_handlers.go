@@ -24,20 +24,6 @@ func GetCategories(categoryService *services.CategoryService) gin.HandlerFunc {
 
 func GetCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
-		
-		category, err := categoryService.GetByID(id)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"category": category})
-	}
-}
-
-func GetCategoryBySlug(categoryService *services.CategoryService) gin.HandlerFunc {
-	return func(c *gin.Context) {
 		slug := c.Param("slug")
 		
 		category, err := categoryService.GetBySlug(slug)
@@ -50,28 +36,11 @@ func GetCategoryBySlug(categoryService *services.CategoryService) gin.HandlerFun
 	}
 }
 
+
 func GetCategoryProducts(categoryService *services.CategoryService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		id := c.Param("id")
-
-		category, err := categoryService.GetWithProducts(id)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"category": category,
-			"products": category.Products,
-		})
-	}
-}
-
-func GetCategoryProductsBySlug(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		slug := c.Param("slug")
 
-		// Получаем категорию с продуктами по slug
 		category, err := categoryService.GetBySlugWithProducts(slug)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
@@ -84,6 +53,7 @@ func GetCategoryProductsBySlug(categoryService *services.CategoryService) gin.Ha
 		})
 	}
 }
+
 
 // Админские хендлеры
 func CreateCategory(categoryService *services.CategoryService) gin.HandlerFunc {

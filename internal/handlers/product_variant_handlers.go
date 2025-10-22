@@ -4,12 +4,11 @@ import (
 	"net/http"
 
 	"mobile-store-back/internal/services"
+	"mobile-store-back/internal/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
-var validate = validator.New()
 
 func CreateProductVariant(productVariantService *services.ProductVariantService) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -23,19 +22,13 @@ func CreateProductVariant(productVariantService *services.ProductVariantService)
 			IsActive  bool    `json:"is_active"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		variant, err := productVariantService.Create(req.ProductID, req.SKU, req.Name, req.Color, req.Size, req.Price, req.IsActive)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -48,8 +41,8 @@ func GetProductVariant(productVariantService *services.ProductVariantService) gi
 		id := c.Param("id")
 
 		variant, err := productVariantService.GetByID(id)
+		utils.HandleNotFound(c, err, "Product variant not found")
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Product variant not found"})
 			return
 		}
 
@@ -57,23 +50,6 @@ func GetProductVariant(productVariantService *services.ProductVariantService) gi
 	}
 }
 
-func GetProductVariants(productVariantService *services.ProductVariantService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		productID := c.Query("product_id")
-		if productID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "product_id parameter is required"})
-			return
-		}
-
-		variants, err := productVariantService.GetByProductID(productID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"variants": variants})
-	}
-}
 
 func GetProductVariantsByProductID(productVariantService *services.ProductVariantService) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -84,8 +60,8 @@ func GetProductVariantsByProductID(productVariantService *services.ProductVarian
 		}
 
 		variants, err := productVariantService.GetByProductSlugOrID(identifier)
+		utils.HandleInternalError(c, err)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -106,19 +82,13 @@ func UpdateProductVariant(productVariantService *services.ProductVariantService)
 			IsActive *bool    `json:"is_active"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		variant, err := productVariantService.Update(id, req.SKU, req.Name, req.Color, req.Size, req.Price, req.IsActive)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -131,8 +101,8 @@ func DeleteProductVariant(productVariantService *services.ProductVariantService)
 		id := c.Param("id")
 
 		err := productVariantService.Delete(id)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 

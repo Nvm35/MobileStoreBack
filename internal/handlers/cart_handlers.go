@@ -1,22 +1,23 @@
 package handlers
 
 import (
+	"mobile-store-back/internal/middleware"
 	"mobile-store-back/internal/services"
+	"mobile-store-back/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
-// GetCart - получение корзины пользователя
+// GetCart - получение корзины пользователя (авторизованного или по сессии)
 func GetCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, _ := c.Get("user_id")
+		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
 		
-		items, err := cartService.GetByUserID(userID.(string))
+		items, err := cartService.GetByUserID(userOrSessionID)
+		utils.HandleInternalError(c, err)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -24,31 +25,23 @@ func GetCart(cartService *services.CartService) gin.HandlerFunc {
 	}
 }
 
-// AddToCart - добавление товара в корзину
+// AddToCart - добавление товара в корзину (для авторизованных и неавторизованных пользователей)
 func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, _ := c.Get("user_id")
+		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
 		
 		var req struct {
 			ProductID uuid.UUID `json:"product_id" validate:"required"`
 			Quantity  int       `json:"quantity" validate:"required,min=1"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		item, err := cartService.AddItem(userID.(string), req.ProductID.String(), req.Quantity)
+		item, err := cartService.AddItem(userOrSessionID, req.ProductID.String(), req.Quantity)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -60,27 +53,19 @@ func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		userID, _ := c.Get("user_id")
+		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
 		
 		var req struct {
 			Quantity int `json:"quantity" validate:"required,min=1"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		item, err := cartService.UpdateItem(id, userID.(string), req.Quantity)
+		item, err := cartService.UpdateItem(id, userOrSessionID, req.Quantity)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -92,11 +77,11 @@ func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 func RemoveFromCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		userID, _ := c.Get("user_id")
+		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
 		
-		err := cartService.RemoveItem(id, userID.(string))
+		err := cartService.RemoveItem(id, userOrSessionID)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -107,11 +92,11 @@ func RemoveFromCart(cartService *services.CartService) gin.HandlerFunc {
 // ClearCart - очистка корзины
 func ClearCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, _ := c.Get("user_id")
+		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
 		
-		err := cartService.Clear(userID.(string))
+		err := cartService.Clear(userOrSessionID)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -122,11 +107,11 @@ func ClearCart(cartService *services.CartService) gin.HandlerFunc {
 // GetCartCount - получение количества товаров в корзине
 func GetCartCount(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, _ := c.Get("user_id")
+		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
 		
-		count, err := cartService.GetCount(userID.(string))
+		count, err := cartService.GetCount(userOrSessionID)
+		utils.HandleInternalError(c, err)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 

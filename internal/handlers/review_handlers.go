@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"mobile-store-back/internal/services"
+	"mobile-store-back/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -37,15 +37,7 @@ func CreateReview(reviewService *services.ReviewService) gin.HandlerFunc {
 			Comment   string    `json:"comment" validate:"required,min=10"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
@@ -77,21 +69,13 @@ func UpdateReview(reviewService *services.ReviewService) gin.HandlerFunc {
 			Comment *string `json:"comment" validate:"omitempty,min=10"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		review, err := reviewService.Update(id, userID.(string), req.Rating, req.Title, req.Comment)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -125,21 +109,13 @@ func VoteReview(reviewService *services.ReviewService) gin.HandlerFunc {
 			Helpful bool `json:"helpful" validate:"required"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		err := reviewService.Vote(id, userID.(string), req.Helpful)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -153,8 +129,8 @@ func GetUserReviews(reviewService *services.ReviewService) gin.HandlerFunc {
 		userID, _ := c.Get("user_id")
 
 		reviews, err := reviewService.GetByUserID(userID.(string))
+		utils.HandleInternalError(c, err)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -166,8 +142,8 @@ func GetUserReviews(reviewService *services.ReviewService) gin.HandlerFunc {
 func GetAllReviews(reviewService *services.ReviewService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		reviews, err := reviewService.GetAll()
+		utils.HandleInternalError(c, err)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -184,14 +160,13 @@ func ApproveReview(reviewService *services.ReviewService) gin.HandlerFunc {
 			Approved bool `json:"approved" validate:"required"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		err := reviewService.Approve(id, req.Approved)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 

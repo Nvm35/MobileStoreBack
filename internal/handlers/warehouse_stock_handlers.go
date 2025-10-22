@@ -41,45 +41,6 @@ func GetVariantStocks(warehouseStockService *services.WarehouseStockService) gin
 	}
 }
 
-// GetAvailabilityInfo - устаревший эндпоинт, функциональность объединена с GetVariantStocks
-func GetAvailabilityInfo(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusMovedPermanently, gin.H{
-			"message":      "Use GET /stocks/variant/:sku instead",
-			"new_endpoint": "/stocks/variant/:sku",
-		})
-	}
-}
-
-// CheckAvailability - устаревший эндпоинт, функциональность объединена с GetVariantStocks
-func CheckAvailability(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusMovedPermanently, gin.H{
-			"message":      "Use GET /stocks/variant/:sku instead",
-			"new_endpoint": "/stocks/variant/:sku",
-		})
-	}
-}
-
-// CheckAvailabilityByWarehouse - устаревший эндпоинт, функциональность объединена с GetWarehouseStocks
-func CheckAvailabilityByWarehouse(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusMovedPermanently, gin.H{
-			"message":      "Use GET /stocks/warehouse/:warehouse_slug instead",
-			"new_endpoint": "/stocks/warehouse/:warehouse_slug",
-		})
-	}
-}
-
-// GetTotalAvailableStock - устаревший эндпоинт, функциональность объединена с GetVariantStocks
-func GetTotalAvailableStock(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusMovedPermanently, gin.H{
-			"message":      "Use GET /stocks/variant/:sku instead",
-			"new_endpoint": "/stocks/variant/:sku",
-		})
-	}
-}
 
 // CreateWarehouseStock - создание остатка на складе (админ)
 func CreateWarehouseStock(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {

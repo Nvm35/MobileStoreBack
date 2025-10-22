@@ -3,10 +3,10 @@ package handlers
 import (
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/services"
+	"mobile-store-back/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -57,25 +57,6 @@ func GetProduct(productService *services.ProductService) gin.HandlerFunc {
 	}
 }
 
-// SearchProducts - устаревший эндпоинт, функциональность перенесена в GetProducts
-func SearchProducts(productService *services.ProductService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusMovedPermanently, gin.H{
-			"message":      "Use GET /products?q=search_term instead",
-			"new_endpoint": "/products",
-		})
-	}
-}
-
-// GetProductsByCategory - устаревший эндпоинт, функциональность перенесена в GetProducts
-func GetProductsByCategory(productService *services.ProductService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusMovedPermanently, gin.H{
-			"message":      "Use GET /products?category_id=category_id instead",
-			"new_endpoint": "/products",
-		})
-	}
-}
 
 func CreateProduct(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -92,21 +73,13 @@ func CreateProduct(productService *services.ProductService) gin.HandlerFunc {
 			Tags        []string  `json:"tags"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		product, err := productService.Create(req.Name, req.Description, req.BasePrice, req.SKU, req.IsActive, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -130,21 +103,13 @@ func UpdateProduct(productService *services.ProductService) gin.HandlerFunc {
 			Tags        []string   `json:"tags"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		product, err := productService.Update(id, req.Name, req.Description, req.BasePrice, req.IsActive, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -157,8 +122,8 @@ func DeleteProduct(productService *services.ProductService) gin.HandlerFunc {
 		id := c.Param("id")
 		
 		err := productService.Delete(id)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 

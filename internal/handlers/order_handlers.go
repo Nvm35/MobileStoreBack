@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"mobile-store-back/internal/services"
+	"mobile-store-back/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -29,15 +29,7 @@ func CreateOrder(orderService *services.OrderService) gin.HandlerFunc {
 			CustomerNotes     string     `json:"customer_notes"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
@@ -75,8 +67,8 @@ func GetUserOrders(orderService *services.OrderService) gin.HandlerFunc {
 		userID, _ := c.Get("user_id")
 
 		orders, err := orderService.GetByUserID(userID.(string))
+		utils.HandleInternalError(c, err)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -89,8 +81,8 @@ func GetOrder(orderService *services.OrderService) gin.HandlerFunc {
 		id := c.Param("id")
 		
 		order, err := orderService.GetByID(id)
+		utils.HandleNotFound(c, err, "Order not found")
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
 			return
 		}
 
@@ -116,21 +108,13 @@ func UpdateOrder(orderService *services.OrderService) gin.HandlerFunc {
 			PickupPoint       *string `json:"pickup_point"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		order, err := orderService.Update(id, userID.(string), req.Status, req.PaymentStatus, req.TrackingNumber, req.CustomerNotes, req.ShippingMethod, req.ShippingAddress, req.PickupPoint)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -141,8 +125,8 @@ func UpdateOrder(orderService *services.OrderService) gin.HandlerFunc {
 func GetAllOrders(orderService *services.OrderService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		orders, err := orderService.List()
+		utils.HandleInternalError(c, err)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -165,15 +149,13 @@ func UpdateOrderStatus(orderService *services.OrderService) gin.HandlerFunc {
 		}
 
 		// Валидация
-		validate := validator.New()
-		if err := validate.Struct(req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
 		order, err := orderService.UpdateStatus(id, req.Status, req.TrackingNumber)
+		utils.HandleError(c, err)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 

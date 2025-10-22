@@ -41,17 +41,16 @@ MobileStoreBack/
 - `order_items` - элементы заказов
 - `reviews` - отзывы
 
-## 🔗 API Endpoints (56 штук)
+## 🔗 API Endpoints (48 штук)
 
-### Публичные (16 endpoints):
+### Публичные (14 endpoints):
 
 ```
 GET  /health                                    # Health check
 GET  /api/categories                           # Список категорий
-GET  /api/categories/:slug                     # Категория по slug
-GET  /api/categories/:slug/products            # Товары категории
-GET  /api/products                             # Список товаров
-GET  /api/products/search                      # Поиск товаров
+GET  /api/categories/:id                       # Категория по ID
+GET  /api/categories/:id/products              # Товары категории
+GET  /api/products                             # Список товаров (с поиском и фильтрацией)
 GET  /api/products/:slug                       # Товар по slug
 GET  /api/products/:slug/reviews               # Отзывы товара
 GET  /api/products/:slug/variants              # Варианты товара
@@ -382,6 +381,5 @@ GET /api/stocks/variant/APPLE-CASE-IP15P-BLACK
 ---
 
 _Обновлено: $(date)_
-_Версия API: 1.0_
-_Всего endpoints: 56_
-
+_Версия API: 1.1_
+_Всего endpoints: 48_

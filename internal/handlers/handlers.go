@@ -34,6 +34,9 @@ func setupPublicRoutes(api *gin.RouterGroup, services *services.Services) {
 		
 		// Каталог товаров
 		setupCatalogRoutes(public, services)
+		
+		// Корзина (доступна для неавторизованных пользователей через сессии)
+		setupPublicCartRoutes(public, services)
 	}
 }
 
@@ -46,6 +49,14 @@ func setupAuthRoutes(router *gin.RouterGroup, services *services.Services) {
 }
 
 func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
+	// Категории (публичные)
+	categories := router.Group("/categories")
+	{
+		categories.GET("/", GetCategories(services.Category))
+		categories.GET("/:slug", GetCategory(services.Category)) // поддерживает и slug, и ID
+		categories.GET("/:slug/products", GetCategoryProducts(services.Category))
+	}
+
 	// Продукты (публичные) - основной эндпоинт с поиском и фильтрацией
 	products := router.Group("/products")
 	{
@@ -79,10 +90,20 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 	{
 		images.GET("/product/:slug", GetProductImages(services.Image))
 	}
+}
 
-
-	// Дополнительные удобные маршруты для фронтенда
-	router.GET("/search", SearchProducts(services.Product)) // устаревший эндпоинт, перенаправляет на /products
+func setupPublicCartRoutes(router *gin.RouterGroup, services *services.Services) {
+	// Корзина для неавторизованных пользователей (с сессиями)
+	cart := router.Group("/cart")
+	cart.Use(middleware.SessionMiddleware()) // Добавляем middleware для сессий
+	{
+		cart.GET("/", GetCart(services.Cart))
+		cart.POST("/", AddToCart(services.Cart))
+		cart.PUT("/:id", UpdateCartItem(services.Cart))
+		cart.DELETE("/:id", RemoveFromCart(services.Cart))
+		cart.DELETE("/", ClearCart(services.Cart))
+		cart.GET("/count", GetCartCount(services.Cart))
+	}
 }
 
 // ============================================================================
@@ -95,8 +116,8 @@ func setupProtectedRoutes(api *gin.RouterGroup, services *services.Services) {
 		// Профиль пользователя
 		setupUserRoutes(protected, services)
 		
-		// Покупки
-		setupShoppingRoutes(protected, services)
+		// Покупки (только заказы, корзина доступна публично)
+		setupOrderRoutes(protected, services)
 		
 		// Отзывы и рейтинги
 		setupReviewRoutes(protected, services)
@@ -112,8 +133,8 @@ func setupUserRoutes(router *gin.RouterGroup, services *services.Services) {
 	}
 }
 
-func setupShoppingRoutes(router *gin.RouterGroup, services *services.Services) {
-	// Заказы
+func setupOrderRoutes(router *gin.RouterGroup, services *services.Services) {
+	// Заказы (только для авторизованных пользователей)
 	orders := router.Group("/orders")
 	{
 		orders.POST("/", CreateOrder(services.Order))
@@ -122,18 +143,7 @@ func setupShoppingRoutes(router *gin.RouterGroup, services *services.Services) {
 		orders.PUT("/:id", UpdateOrder(services.Order))
 	}
 
-	// Корзина
-	cart := router.Group("/cart")
-	{
-		cart.GET("/", GetCart(services.Cart))
-		cart.POST("/", AddToCart(services.Cart))
-		cart.PUT("/:id", UpdateCartItem(services.Cart))
-		cart.DELETE("/:id", RemoveFromCart(services.Cart))
-		cart.DELETE("/", ClearCart(services.Cart))
-		cart.GET("/count", GetCartCount(services.Cart))
-	}
-
-	// Избранное
+	// Избранное (только для авторизованных пользователей)
 	wishlist := router.Group("/wishlist")
 	{
 		wishlist.GET("/", GetWishlist(services.Wishlist))
