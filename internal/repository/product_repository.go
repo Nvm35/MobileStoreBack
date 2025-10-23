@@ -1,31 +1,24 @@
 package repository
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
 	"mobile-store-back/internal/models"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type productRepository struct {
-	db    *gorm.DB
-	redis *redis.Client
+	db *gorm.DB
 }
 
-func NewProductRepository(db *gorm.DB, redis *redis.Client) ProductRepository {
+func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &productRepository{
-		db:    db,
-		redis: redis,
+		db: db,
 	}
 }
 
-func (r *productRepository) Create(name string, slug string, description string, basePrice float64, sku string, isActive bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error) {
+func (r *productRepository) Create(name string, slug string, description string, basePrice float64, sku string, isActive bool, feature bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error) {
 	categoryUUID, _ := uuid.Parse(categoryID)
 
 	product := models.Product{
@@ -35,6 +28,7 @@ func (r *productRepository) Create(name string, slug string, description string,
 		BasePrice:   basePrice,
 		SKU:         sku,
 		IsActive:    isActive,
+		Feature:     feature,
 		Brand:       brand,
 		Model:       model,
 		Material:    material,
@@ -43,29 +37,18 @@ func (r *productRepository) Create(name string, slug string, description string,
 	}
 
 	err := r.db.Create(&product).Error
-	return &product, err
+	if err != nil {
+		return nil, err
+	}
+	
+	return &product, nil
 }
 
 func (r *productRepository) GetByID(id string) (*models.Product, error) {
-	// Попробуем получить из кэша
-	cacheKey := fmt.Sprintf("product:%s", id)
-	cached, err := r.redis.Get(context.Background(), cacheKey).Result()
-	if err == nil {
-		var product models.Product
-		if err := json.Unmarshal([]byte(cached), &product); err == nil {
-			return &product, nil
-		}
-	}
-
-	// Получаем из базы данных
 	var product models.Product
 	if err := r.db.Preload("Category").Preload("Images").First(&product, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
-
-	// Сохраняем в кэш
-	productJSON, _ := json.Marshal(product)
-	r.redis.Set(context.Background(), cacheKey, productJSON, time.Hour)
 
 	return &product, nil
 }
@@ -78,7 +61,7 @@ func (r *productRepository) GetBySKU(sku string) (*models.Product, error) {
 	return &product, nil
 }
 
-func (r *productRepository) Update(id string, name *string, description *string, basePrice *float64, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error) {
+func (r *productRepository) Update(id string, name *string, description *string, basePrice *float64, isActive *bool, feature *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error) {
 	var product models.Product
 	err := r.db.Where("id = ?", id).First(&product).Error
 	if err != nil {
@@ -96,6 +79,9 @@ func (r *productRepository) Update(id string, name *string, description *string,
 	}
 	if isActive != nil {
 		product.IsActive = *isActive
+	}
+	if feature != nil {
+		product.Feature = *feature
 	}
 	if brand != nil {
 		product.Brand = *brand
@@ -121,18 +107,10 @@ func (r *productRepository) Update(id string, name *string, description *string,
 		return nil, err
 	}
 
-	// Удаляем из кэша
-	cacheKey := fmt.Sprintf("product:%s", product.ID.String())
-	r.redis.Del(context.Background(), cacheKey)
-
 	return &product, nil
 }
 
 func (r *productRepository) Delete(id string) error {
-	// Удаляем из кэша
-	cacheKey := fmt.Sprintf("product:%s", id)
-	r.redis.Del(context.Background(), cacheKey)
-
 	return r.db.Delete(&models.Product{}, "id = ?", id).Error
 }
 
@@ -189,25 +167,23 @@ func (r *productRepository) ListWithFilters(brand, minPrice, maxPrice string) ([
 
 // GetBySlug получает товар по slug
 func (r *productRepository) GetBySlug(slug string) (*models.Product, error) {
-	// Попробуем получить из кэша
-	cacheKey := fmt.Sprintf("product:slug:%s", slug)
-	cached, err := r.redis.Get(context.Background(), cacheKey).Result()
-	if err == nil {
-		var product models.Product
-		if err := json.Unmarshal([]byte(cached), &product); err == nil {
-			return &product, nil
-		}
-	}
-
-	// Получаем из базы данных
 	var product models.Product
 	if err := r.db.Preload("Category").Preload("Images").First(&product, "slug = ?", slug).Error; err != nil {
 		return nil, err
 	}
 
-	// Сохраняем в кэш
-	productJSON, _ := json.Marshal(product)
-	r.redis.Set(context.Background(), cacheKey, productJSON, time.Hour)
-
 	return &product, nil
 }
+
+// GetFeatured получает все товары с feature=true
+func (r *productRepository) GetFeatured() ([]*models.Product, error) {
+	var products []*models.Product
+	if err := r.db.Preload("Category").Preload("Images").
+		Where("feature = ? AND is_active = ?", true, true).
+		Order("created_at DESC").Find(&products).Error; err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}
+

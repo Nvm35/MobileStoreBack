@@ -61,6 +61,7 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 	products := router.Group("/products")
 	{
 		products.GET("/", GetProducts(services.Product)) // поддерживает поиск и фильтрацию через query параметры
+		products.GET("/featured", GetFeaturedProducts(services.Product)) // товары с feature=true
 		products.GET("/:slug", GetProduct(services.Product)) // поддерживает и slug, и ID
 		products.GET("/:slug/reviews", GetProductReviews(services.Review))
 		products.GET("/:slug/variants", GetProductVariantsByProductID(services.ProductVariant))

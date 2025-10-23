@@ -66,6 +66,7 @@ func CreateProduct(productService *services.ProductService) gin.HandlerFunc {
 			BasePrice   float64   `json:"base_price" validate:"required,min=0"`
 			SKU         string    `json:"sku" validate:"required"`
 			IsActive    bool      `json:"is_active"`
+			Feature     bool      `json:"feature"`
 			Brand       string    `json:"brand" validate:"required,min=2"`
 			Model       string    `json:"model"`
 			Material    string    `json:"material"`
@@ -77,7 +78,7 @@ func CreateProduct(productService *services.ProductService) gin.HandlerFunc {
 			return
 		}
 
-		product, err := productService.Create(req.Name, req.Description, req.BasePrice, req.SKU, req.IsActive, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
+		product, err := productService.Create(req.Name, req.Description, req.BasePrice, req.SKU, req.IsActive, req.Feature, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -96,6 +97,7 @@ func UpdateProduct(productService *services.ProductService) gin.HandlerFunc {
 			Description *string    `json:"description"`
 			BasePrice   *float64   `json:"base_price" validate:"omitempty,min=0"`
 			IsActive    *bool      `json:"is_active"`
+			Feature     *bool      `json:"feature"`
 			Brand       *string    `json:"brand" validate:"omitempty,min=2"`
 			Model       *string    `json:"model"`
 			Material    *string    `json:"material"`
@@ -107,7 +109,7 @@ func UpdateProduct(productService *services.ProductService) gin.HandlerFunc {
 			return
 		}
 
-		product, err := productService.Update(id, req.Name, req.Description, req.BasePrice, req.IsActive, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
+		product, err := productService.Update(id, req.Name, req.Description, req.BasePrice, req.IsActive, req.Feature, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -130,3 +132,16 @@ func DeleteProduct(productService *services.ProductService) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 	}
 }
+
+func GetFeaturedProducts(productService *services.ProductService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		products, err := productService.GetFeatured()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"products": products})
+	}
+}
+

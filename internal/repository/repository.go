@@ -34,16 +34,17 @@ type UserRepository interface {
 }
 
 type ProductRepository interface {
-	Create(name string, slug string, description string, basePrice float64, sku string, isActive bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error)
+	Create(name string, slug string, description string, basePrice float64, sku string, isActive bool, feature bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error)
 	GetByID(id string) (*models.Product, error)
 	GetBySlug(slug string) (*models.Product, error)
 	GetBySKU(sku string) (*models.Product, error)
-	Update(id string, name *string, description *string, basePrice *float64, isActive *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error)
+	Update(id string, name *string, description *string, basePrice *float64, isActive *bool, feature *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error)
 	Delete(id string) error
 	List() ([]*models.Product, error)
 	Search(query string) ([]*models.Product, error)
 	GetByCategory(categoryID string) ([]*models.Product, error)
 	ListWithFilters(brand, minPrice, maxPrice string) ([]*models.Product, error)
+	GetFeatured() ([]*models.Product, error)
 }
 
 type ProductVariantRepository interface {
@@ -148,7 +149,7 @@ type WarehouseStockRepository interface {
 func New(db *gorm.DB, redis *redis.Client) *Repository {
 	return &Repository{
 		User:           NewUserRepository(db, redis),
-		Product:        NewProductRepository(db, redis),
+		Product:        NewProductRepository(db),
 		ProductVariant: NewProductVariantRepository(db, redis),
 		Order:          NewOrderRepository(db, redis),
 		Auth:           NewAuthRepository(db, redis),

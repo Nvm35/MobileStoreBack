@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS products (
     base_price DECIMAL(10,2) NOT NULL, -- базовая цена товара
     sku VARCHAR(255) NOT NULL UNIQUE,
     is_active BOOLEAN DEFAULT true,
+    feature BOOLEAN DEFAULT false, -- флаг особенного товара для витрины
     brand VARCHAR(255) NOT NULL, -- бренд как строка
     model VARCHAR(255),
     material VARCHAR(255),
@@ -213,6 +214,8 @@ CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
 CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active);
+CREATE INDEX IF NOT EXISTS idx_products_feature ON products(feature);
+CREATE INDEX IF NOT EXISTS idx_products_feature_active ON products(feature, is_active);
 CREATE INDEX IF NOT EXISTS idx_warehouses_city ON warehouses(city);
 CREATE INDEX IF NOT EXISTS idx_warehouses_active ON warehouses(is_active);
 CREATE INDEX IF NOT EXISTS idx_warehouses_main ON warehouses(is_main);
@@ -342,11 +345,11 @@ INSERT INTO warehouses (name, slug, address, city, phone, email, is_active, is_m
 ON CONFLICT DO NOTHING;
 
 -- Создание тестовых товаров с разными брендами
-INSERT INTO products (name, slug, description, base_price, sku, is_active, brand, model, material, category_id, tags) VALUES 
+INSERT INTO products (name, slug, description, base_price, sku, is_active, feature, brand, model, material, category_id, tags) VALUES 
 -- Чехлы для iPhone
-('Чехол Apple Silicone Case для iPhone 15 Pro', 'apple-silicone-case-iphone-15-pro', 'Официальный силиконовый чехол Apple с мягкой внутренней поверхностью и внешней поверхностью из силикона.', 4990.00, 'APPLE-CASE-IP15P', true, 'Apple', 'Silicone Case', 'Силикон', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15 Pro', 'официальный', 'силикон']),
+('Чехол Apple Silicone Case для iPhone 15 Pro', 'apple-silicone-case-iphone-15-pro', 'Официальный силиконовый чехол Apple с мягкой внутренней поверхностью и внешней поверхностью из силикона.', 4990.00, 'APPLE-CASE-IP15P', true, false, 'Apple', 'Silicone Case', 'Силикон', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15 Pro', 'официальный', 'силикон']),
 
-('Чехол Spigen Ultra Hybrid для iPhone 15', 'spigen-ultra-hybrid-iphone-15', 'Прозрачный чехол Spigen с защитой от падений и поддержкой беспроводной зарядки.', 1990.00, 'SPIGEN-UH-IP15', true, 'Spigen', 'Ultra Hybrid', 'TPU + Поликарбонат', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15', 'прозрачный', 'защита']),
+('Чехол Spigen Ultra Hybrid для iPhone 15', 'spigen-ultra-hybrid-iphone-15', 'Прозрачный чехол Spigen с защитой от падений и поддержкой беспроводной зарядки.', 1990.00, 'SPIGEN-UH-IP15', true, false, 'Spigen', 'Ultra Hybrid', 'TPU + Поликарбонат', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15', 'прозрачный', 'защита']),
 
 -- Зарядные устройства
 ('Зарядное устройство Apple 20W USB-C', 'apple-20w-usb-c-charger', 'Официальное зарядное устройство Apple мощностью 20W с разъемом USB-C.', 2990.00, 'APPLE-20W-USB-C', true, 'Apple', '20W USB-C Power Adapter', 'Пластик', (SELECT id FROM categories WHERE slug = 'chargers'), ARRAY['iPhone', 'iPad', 'быстрая зарядка']),
@@ -781,3 +784,14 @@ INSERT INTO images (product_id, cloudinary_public_id, url, is_primary) VALUES
 -- Изображения для подставки Baseus
 ((SELECT id FROM products WHERE sku = 'BASEUS-MS-PHONE'), 'baseus-ms-phone-1', 'https://res.cloudinary.com/your-cloud/image/upload/v1/baseus-ms-phone-1.jpg', true)
 ON CONFLICT DO NOTHING;
+
+-- Обновляем несколько товаров как особенные (для примера)
+UPDATE products 
+SET feature = true 
+WHERE sku IN (
+    'APPLE-AIRPODS-PRO-2',
+    'SONY-WH-1000XM5', 
+    'SENNHEISER-HD-660S',
+    'SECRETLAB-TITAN',
+    'DXRACER-FORMULA'
+);

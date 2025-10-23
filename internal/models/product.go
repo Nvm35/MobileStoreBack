@@ -15,6 +15,7 @@ type Product struct {
 	BasePrice   float64         `json:"base_price" gorm:"not null" validate:"required,min=0"`
 	SKU         string          `json:"sku" gorm:"uniqueIndex;not null" validate:"required"`
 	IsActive    bool            `json:"is_active" gorm:"default:true"`
+	Feature     bool            `json:"feature" gorm:"default:false"` // Флаг особенного товара для витрины
 	Brand       string          `json:"brand" gorm:"not null" validate:"required,min=2"`
 	Model       string          `json:"model"`
 	Material    string          `json:"material" gorm:"type:varchar(255)"`
