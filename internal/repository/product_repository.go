@@ -168,7 +168,7 @@ func (r *productRepository) ListWithFilters(brand, minPrice, maxPrice string) ([
 // GetBySlug получает товар по slug
 func (r *productRepository) GetBySlug(slug string) (*models.Product, error) {
 	var product models.Product
-	if err := r.db.Preload("Category").Preload("Images").First(&product, "slug = ?", slug).Error; err != nil {
+	if err := r.db.Preload("Category").Preload("Images").Where("slug = ? AND is_active = ?", slug, true).First(&product).Error; err != nil {
 		return nil, err
 	}
 

@@ -44,7 +44,7 @@ func GetProducts(productService *services.ProductService) gin.HandlerFunc {
 
 func GetProduct(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		identifier := c.Param("id") // Может быть как ID, так и slug
+		identifier := c.Param("slug") // Может быть как ID, так и slug
 		
 		// Пробуем найти по slug или ID
 		product, err := productService.GetBySlugOrID(identifier)
