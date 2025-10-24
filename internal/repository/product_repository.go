@@ -18,7 +18,7 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 	}
 }
 
-func (r *productRepository) Create(name string, slug string, description string, basePrice float64, sku string, isActive bool, feature bool, brand string, model string, material string, categoryID string, tags []string) (*models.Product, error) {
+func (r *productRepository) Create(name string, slug string, description string, basePrice float64, sku string, isActive bool, feature bool, brand string, model string, material string, categoryID string, tags []string, videoURL *string) (*models.Product, error) {
 	categoryUUID, _ := uuid.Parse(categoryID)
 
 	product := models.Product{
@@ -34,6 +34,7 @@ func (r *productRepository) Create(name string, slug string, description string,
 		Material:    material,
 		CategoryID:  categoryUUID,
 		Tags:        tags,
+		VideoURL:    videoURL,
 	}
 
 	err := r.db.Create(&product).Error
@@ -61,7 +62,7 @@ func (r *productRepository) GetBySKU(sku string) (*models.Product, error) {
 	return &product, nil
 }
 
-func (r *productRepository) Update(id string, name *string, description *string, basePrice *float64, isActive *bool, feature *bool, brand *string, model *string, material *string, categoryID *string, tags []string) (*models.Product, error) {
+func (r *productRepository) Update(id string, name *string, description *string, basePrice *float64, isActive *bool, feature *bool, brand *string, model *string, material *string, categoryID *string, tags []string, videoURL *string) (*models.Product, error) {
 	var product models.Product
 	err := r.db.Where("id = ?", id).First(&product).Error
 	if err != nil {
@@ -99,6 +100,9 @@ func (r *productRepository) Update(id string, name *string, description *string,
 	}
 	if len(tags) > 0 {
 		product.Tags = tags
+	}
+	if videoURL != nil {
+		product.VideoURL = videoURL
 	}
 
 	// Обновляем в базе данных

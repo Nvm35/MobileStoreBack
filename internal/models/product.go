@@ -21,6 +21,7 @@ type Product struct {
 	Material    string          `json:"material" gorm:"type:varchar(255)"`
 	CategoryID  uuid.UUID       `json:"category_id" gorm:"type:uuid;not null"`
 	Tags        pq.StringArray  `json:"tags" gorm:"type:text[]"`
+	VideoURL    *string         `json:"video_url" gorm:"type:text" validate:"omitempty,url"` // Ссылка на видео товара
 	ViewCount   int             `json:"view_count" gorm:"default:0"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`

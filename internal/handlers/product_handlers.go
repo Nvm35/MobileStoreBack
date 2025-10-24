@@ -72,13 +72,14 @@ func CreateProduct(productService *services.ProductService) gin.HandlerFunc {
 			Material    string    `json:"material"`
 			CategoryID  uuid.UUID `json:"category_id" validate:"required"`
 			Tags        []string  `json:"tags"`
+			VideoURL    *string   `json:"video_url" validate:"omitempty,url"`
 		}
 
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		product, err := productService.Create(req.Name, req.Description, req.BasePrice, req.SKU, req.IsActive, req.Feature, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
+		product, err := productService.Create(req.Name, req.Description, req.BasePrice, req.SKU, req.IsActive, req.Feature, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags, req.VideoURL)
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -103,13 +104,14 @@ func UpdateProduct(productService *services.ProductService) gin.HandlerFunc {
 			Material    *string    `json:"material"`
 			CategoryID  *uuid.UUID `json:"category_id"`
 			Tags        []string   `json:"tags"`
+			VideoURL    *string    `json:"video_url" validate:"omitempty,url"`
 		}
 
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		product, err := productService.Update(id, req.Name, req.Description, req.BasePrice, req.IsActive, req.Feature, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags)
+		product, err := productService.Update(id, req.Name, req.Description, req.BasePrice, req.IsActive, req.Feature, req.Brand, req.Model, req.Material, req.CategoryID, req.Tags, req.VideoURL)
 		utils.HandleError(c, err)
 		if err != nil {
 			return

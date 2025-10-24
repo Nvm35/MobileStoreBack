@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS products (
     material VARCHAR(255),
     category_id UUID NOT NULL REFERENCES categories(id),
     tags TEXT[], -- массив тегов
+    video_url TEXT, -- ссылка на видео товара
     view_count INTEGER DEFAULT 0, -- количество просмотров
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -345,9 +346,9 @@ INSERT INTO warehouses (name, slug, address, city, phone, email, is_active, is_m
 ON CONFLICT DO NOTHING;
 
 -- Создание тестовых товаров с разными брендами
-INSERT INTO products (name, slug, description, base_price, sku, is_active, feature, brand, model, material, category_id, tags) VALUES 
+INSERT INTO products (name, slug, description, base_price, sku, is_active, feature, brand, model, material, category_id, tags, video_url) VALUES 
 -- Чехлы для iPhone
-('Чехол Apple Silicone Case для iPhone 15 Pro', 'apple-silicone-case-iphone-15-pro', 'Официальный силиконовый чехол Apple с мягкой внутренней поверхностью и внешней поверхностью из силикона.', 4990.00, 'APPLE-CASE-IP15P', true, false, 'Apple', 'Silicone Case', 'Силикон', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15 Pro', 'официальный', 'силикон']),
+('Чехол Apple Silicone Case для iPhone 15 Pro', 'apple-silicone-case-iphone-15-pro', 'Официальный силиконовый чехол Apple с мягкой внутренней поверхностью и внешней поверхностью из силикона.', 4990.00, 'APPLE-CASE-IP15P', true, false, 'Apple', 'Silicone Case', 'Силикон', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15 Pro', 'официальный', 'силикон'], 'https://www.youtube.com/watch?v=example1'),
 
 ('Чехол Spigen Ultra Hybrid для iPhone 15', 'spigen-ultra-hybrid-iphone-15', 'Прозрачный чехол Spigen с защитой от падений и поддержкой беспроводной зарядки.', 1990.00, 'SPIGEN-UH-IP15', true, false, 'Spigen', 'Ultra Hybrid', 'TPU + Поликарбонат', (SELECT id FROM categories WHERE slug = 'cases'), ARRAY['iPhone 15', 'прозрачный', 'защита']),
 
@@ -357,7 +358,7 @@ INSERT INTO products (name, slug, description, base_price, sku, is_active, featu
 ('Беспроводная зарядка Anker PowerWave 7.5W', 'anker-powervave-7-5w-wireless-charger', 'Беспроводная зарядная станция Anker с поддержкой быстрой зарядки до 7.5W.', 2490.00, 'ANKER-PW-7.5W', true, 'Anker', 'PowerWave 7.5W', 'Пластик + Силикон', (SELECT id FROM categories WHERE slug = 'wireless-chargers'), ARRAY['беспроводная зарядка', 'Qi', 'быстрая зарядка']),
 
 -- Наушники
-('Наушники Apple AirPods Pro 2', 'apple-airpods-pro-2', 'Беспроводные наушники Apple AirPods Pro 2-го поколения с активным шумоподавлением.', 19990.00, 'APPLE-AIRPODS-PRO-2', true, 'Apple', 'AirPods Pro 2', 'Пластик', (SELECT id FROM categories WHERE slug = 'headphones'), ARRAY['беспроводные', 'шумоподавление', 'пространственное аудио']),
+('Наушники Apple AirPods Pro 2', 'apple-airpods-pro-2', 'Беспроводные наушники Apple AirPods Pro 2-го поколения с активным шумоподавлением.', 19990.00, 'APPLE-AIRPODS-PRO-2', true, 'Apple', 'AirPods Pro 2', 'Пластик', (SELECT id FROM categories WHERE slug = 'headphones'), ARRAY['беспроводные', 'шумоподавление', 'пространственное аудио'], 'https://www.youtube.com/watch?v=example2'),
 
 ('Наушники JBL Tune 760NC', 'jbl-tune-760nc', 'Беспроводные наушники JBL с активным шумоподавлением и 50-часовым временем работы.', 8990.00, 'JBL-TUNE-760NC', true, 'JBL', 'Tune 760NC', 'Пластик + Металл', (SELECT id FROM categories WHERE slug = 'headphones'), ARRAY['беспроводные', 'шумоподавление', 'долгая работа']),
 
