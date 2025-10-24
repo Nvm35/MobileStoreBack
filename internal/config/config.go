@@ -55,14 +55,14 @@ func Load() *Config {
 			Password: os.Getenv("REDIS_PASSWORD"),
 		},
 		Server: ServerConfig{
-			Host: os.Getenv("SERVER_HOST"),
-			Port: getEnvAsInt("SERVER_PORT"),
+			Host: getEnvWithDefault("SERVER_HOST", "0.0.0.0"),
+			Port: getServerPort(),
 		},
 		JWT: JWTConfig{
-			Secret:      os.Getenv("JWT_SECRET"),
-			ExpireHours: getEnvAsInt("JWT_EXPIRE_HOURS"),
+			Secret:      getEnvWithDefault("JWT_SECRET", "your-secret-key-change-in-production"),
+			ExpireHours: getEnvAsIntWithDefault("JWT_EXPIRE_HOURS", 24),
 		},
-		Env: os.Getenv("ENV"),
+		Env: getEnvWithDefault("ENV", "development"),
 	}
 }
 
@@ -134,4 +134,37 @@ func getEnvAsInt(key string) int {
 		}
 	}
 	return 0
+}
+
+func getEnvWithDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvAsIntWithDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getServerPort() int {
+	// Render автоматически устанавливает переменную PORT
+	if port := os.Getenv("PORT"); port != "" {
+		if intValue, err := strconv.Atoi(port); err == nil {
+			return intValue
+		}
+	}
+	// Если PORT не установлен, используем SERVER_PORT
+	if port := os.Getenv("SERVER_PORT"); port != "" {
+		if intValue, err := strconv.Atoi(port); err == nil {
+			return intValue
+		}
+	}
+	// Дефолтный порт
+	return 8080
 }

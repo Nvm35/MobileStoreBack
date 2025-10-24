@@ -22,6 +22,11 @@ import (
 func main() {
 	// Инициализация конфигурации
 	cfg := config.Load()
+	
+	// Устанавливаем режим Gin в зависимости от окружения
+	if cfg.Env == "production" || cfg.Env == "render" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	// Инициализация логгера
 	logger, err := zap.NewProduction()
