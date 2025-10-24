@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -11,23 +12,22 @@ func CORS() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 		
 		// Разрешенные домены для CORS
-		allowedOrigins := []string{
-			"http://localhost:3000",
-			"http://127.0.0.1:3000",
-			"http://localhost:3001",
-			"http://127.0.0.1:3001",
-			"http://localhost:5173", // Vite dev server
-			"http://127.0.0.1:5173",
-		}
+		allowedOrigins := GetCORSOrigins()
 		
 		// Проверяем, разрешен ли origin
 		allowedOrigin := ""
 		if origin != "" {
+			// Проверяем точные совпадения
 			for _, allowed := range allowedOrigins {
 				if strings.EqualFold(origin, allowed) {
 					allowedOrigin = origin
 					break
 				}
+			}
+			
+			// Если точного совпадения нет, проверяем Vercel поддомены
+			if allowedOrigin == "" && strings.Contains(origin, "vercel.app") {
+				allowedOrigin = origin
 			}
 		} else {
 			// Если нет Origin заголовка, разрешаем все (для тестирования)
@@ -51,4 +51,29 @@ func CORS() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func GetCORSOrigins() []string {
+	// Базовые домены для локальной разработки
+	origins := []string{
+		"http://localhost:3000",
+		"http://127.0.0.1:3000",
+		"http://localhost:3001",
+		"http://127.0.0.1:3001",
+		"http://localhost:5173", // Vite dev server
+		"http://127.0.0.1:5173",
+	}
+	
+	// Добавляем домены из переменной окружения
+	if corsOrigins := os.Getenv("CORS_ORIGINS"); corsOrigins != "" {
+		envOrigins := strings.Split(corsOrigins, ",")
+		for _, origin := range envOrigins {
+			origin = strings.TrimSpace(origin)
+			if origin != "" {
+				origins = append(origins, origin)
+			}
+		}
+	}
+	
+	return origins
 }
