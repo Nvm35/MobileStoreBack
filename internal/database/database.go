@@ -11,12 +11,19 @@ import (
 )
 
 func Connect(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=UTC",
+	// Определяем SSL режим в зависимости от окружения
+	sslMode := "disable"
+	if cfg.Env == "production" || cfg.Env == "render" {
+		sslMode = "require"
+	}
+	
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=UTC",
 		cfg.Database.Host,
 		cfg.Database.User,
 		cfg.Database.Password,
 		cfg.Database.Name,
 		cfg.Database.Port,
+		sslMode,
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
