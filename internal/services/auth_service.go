@@ -99,6 +99,14 @@ func (s *AuthService) Login(req *LoginRequest) (*AuthResponse, error) {
 		return nil, errors.New("account is deactivated")
 	}
 
+	// Обновляем время последнего входа
+	now := time.Now()
+	user.LastLogin = &now
+	if err := s.repo.UpdateUser(user); err != nil {
+		// Логируем ошибку, но не прерываем процесс входа
+		// Можно добавить логирование здесь
+	}
+
 	// Генерируем токен
 	token, err := s.generateToken(user.ID.String())
 	if err != nil {
