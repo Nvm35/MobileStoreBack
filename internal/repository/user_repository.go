@@ -88,7 +88,7 @@ func (r *userRepository) UpdateProfile(userID string, firstName *string, lastNam
 	return &user, nil
 }
 
-func (r *userRepository) Update(id string, firstName *string, lastName *string, phone *string, isActive *bool, isAdmin *bool) (*models.User, error) {
+func (r *userRepository) Update(id string, firstName *string, lastName *string, phone *string, isActive *bool, role *string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("id = ?", id).First(&user).Error
 	if err != nil {
@@ -107,8 +107,13 @@ func (r *userRepository) Update(id string, firstName *string, lastName *string, 
 	if isActive != nil {
 		user.IsActive = *isActive
 	}
-	if isAdmin != nil {
-		user.IsAdmin = *isAdmin
+	if role != nil {
+		// Проверяем, что роль валидна
+		validRoles := map[string]bool{"admin": true, "manager": true, "customer": true}
+		if !validRoles[*role] {
+			return nil, fmt.Errorf("invalid role: %s", *role)
+		}
+		user.Role = *role
 	}
 	
 	err = r.db.Save(&user).Error

@@ -15,7 +15,7 @@ type User struct {
 	LastName               string          `json:"last_name" gorm:"not null" validate:"required,min=2"`
 	Phone                  string          `json:"phone" gorm:"type:varchar(20)" validate:"omitempty,e164"`
 	IsActive               bool            `json:"is_active" gorm:"default:true"`
-	IsAdmin                bool            `json:"is_admin" gorm:"default:false"`
+	Role                   string          `json:"role" gorm:"type:varchar(20);default:'customer';check:role IN ('admin', 'manager', 'customer')"`
 	EmailVerified          bool            `json:"email_verified" gorm:"default:false"`
 	EmailVerificationToken string          `json:"-" gorm:"type:varchar(255)"`
 	PasswordResetToken     string          `json:"-" gorm:"type:varchar(255)"`

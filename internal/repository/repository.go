@@ -28,7 +28,7 @@ type UserRepository interface {
 	GetByID(id string) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
 	UpdateProfile(userID string, firstName *string, lastName *string, phone *string) (*models.User, error)
-	Update(id string, firstName *string, lastName *string, phone *string, isActive *bool, isAdmin *bool) (*models.User, error)
+	Update(id string, firstName *string, lastName *string, phone *string, isActive *bool, role *string) (*models.User, error)
 	Delete(id string) error
 	List() ([]*models.User, error)
 }

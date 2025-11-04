@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     is_active BOOLEAN DEFAULT true,
-    is_admin BOOLEAN DEFAULT false,
+    role VARCHAR(20) DEFAULT 'customer' CHECK (role IN ('admin', 'manager', 'customer')),
     email_verified BOOLEAN DEFAULT false,
     email_verification_token VARCHAR(255),
     password_reset_token VARCHAR(255),
@@ -332,9 +332,10 @@ CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXE
 -- =============================================
 
 -- Создание тестового пользователя
-INSERT INTO users (email, password, first_name, last_name, phone, is_active, is_admin) VALUES 
-('admin@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Админ', 'Админов', '+7 (999) 123-45-67', true, true),
-('user@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Иван', 'Петров', '+7 (999) 765-43-21', true, false)
+INSERT INTO users (email, password, first_name, last_name, phone, is_active, role) VALUES 
+('admin@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Админ', 'Админов', '+7 (999) 123-45-67', true, 'admin'),
+('manager@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Менеджер', 'Менеджеров', '+7 (999) 111-22-33', true, 'manager'),
+('user@shop.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Иван', 'Петров', '+7 (999) 765-43-21', true, 'customer')
 ON CONFLICT (email) DO NOTHING;
 
 -- Создание тестовых складов/филиалов

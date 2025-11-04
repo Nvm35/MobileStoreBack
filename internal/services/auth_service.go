@@ -62,7 +62,7 @@ func (s *AuthService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		LastName:   req.LastName,
 		Phone:    req.Phone,
 		IsActive: true,
-		IsAdmin:  false,
+		Role:     "customer",
 	}
 	
 

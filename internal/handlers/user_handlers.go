@@ -81,14 +81,14 @@ func UpdateUser(userService *services.UserService) gin.HandlerFunc {
 			LastName  *string `json:"last_name" validate:"omitempty,min=2"`
 			Phone     *string `json:"phone" validate:"omitempty,e164"`
 			IsActive  *bool   `json:"is_active"`
-			IsAdmin   *bool   `json:"is_admin"`
+			Role      *string `json:"role" validate:"omitempty,oneof=admin manager customer"`
 		}
 
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		user, err := userService.Update(id, req.FirstName, req.LastName, req.Phone, req.IsActive, req.IsAdmin)
+		user, err := userService.Update(id, req.FirstName, req.LastName, req.Phone, req.IsActive, req.Role)
 		utils.HandleError(c, err)
 		if err != nil {
 			return
