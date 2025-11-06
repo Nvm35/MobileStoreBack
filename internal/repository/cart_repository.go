@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"mobile-store-back/internal/models"
 
 	"github.com/google/uuid"
@@ -57,17 +58,9 @@ func (r *cartRepository) AddItem(userID string, productID string, quantity int) 
 	err = r.db.Where("user_id = ? AND product_id = ?", userUUID, productUUID).First(&existingItem).Error
 	
 	if err == nil {
-		// Товар уже есть, обновляем количество
-		existingItem.Quantity += quantity
-		// Обновляем цену на текущую
-		existingItem.Price = product.BasePrice
-		err = r.db.Save(&existingItem).Error
-		if err != nil {
-			return nil, err
-		}
-		// Загружаем связанные данные
-		err = r.db.Preload("Product").First(&existingItem, existingItem.ID).Error
-		return &existingItem, err
+		// Товар уже есть в корзине - возвращаем ошибку
+		// Фронтенд должен использовать UpdateItem для обновления количества
+		return nil, errors.New("item already exists in cart, use UpdateItem to change quantity")
 	}
 	
 	// Товара нет, создаем новый
