@@ -94,9 +94,10 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 }
 
 func setupPublicCartRoutes(router *gin.RouterGroup, services *services.Services) {
-	// Корзина для неавторизованных пользователей (с сессиями)
+	// Корзина ТОЛЬКО для авторизованных пользователей (JWT токен обязателен)
+	// Неавторизованные пользователи работают с корзиной только в localStorage на фронте
 	cart := router.Group("/cart")
-	cart.Use(middleware.SessionMiddleware()) // Добавляем middleware для сессий
+	cart.Use(middleware.AuthRequired(services.Auth)) // Требуем авторизацию
 	{
 		cart.GET("/", GetCart(services.Cart))
 		cart.POST("/", AddToCart(services.Cart))

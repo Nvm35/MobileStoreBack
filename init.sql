@@ -123,18 +123,18 @@ CREATE TABLE IF NOT EXISTS images (
 );
 
 -- 6. Создание таблицы корзины (зависит от users, products)
+-- Мы не храним товары без логина, поэтому все записи должны иметь user_id
 CREATE TABLE IF NOT EXISTS cart_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    session_id VARCHAR(255), -- для неавторизованных пользователей
+    session_id VARCHAR(255), -- опциональное поле для объединения корзины после логина
     product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     price DECIMAL(10,2) NOT NULL, -- цена на момент добавления
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP, -- срок действия корзины
-    UNIQUE(user_id, product_id), -- один товар на пользователя
-    UNIQUE(session_id, product_id) -- один товар на сессию
+    CONSTRAINT cart_items_user_product_unique UNIQUE(user_id, product_id) -- один товар на пользователя
 );
 
 -- 7. Создание таблицы избранного (зависит от users, products)
@@ -239,7 +239,6 @@ CREATE INDEX IF NOT EXISTS idx_order_items_variant_id ON order_items(product_var
 
 -- Индексы для корзины
 CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(user_id);
-CREATE INDEX IF NOT EXISTS idx_cart_items_session_id ON cart_items(session_id);
 CREATE INDEX IF NOT EXISTS idx_cart_items_product_id ON cart_items(product_id);
 
 -- Индексы для избранного

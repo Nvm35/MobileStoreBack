@@ -84,6 +84,7 @@ type CartRepository interface {
 	RemoveItem(id string, userID string) error
 	Clear(userID string) error
 	GetCount(userID string) (int, error)
+	MergeCart(userID string, sessionID string) error
 }
 
 type WishlistRepository interface {

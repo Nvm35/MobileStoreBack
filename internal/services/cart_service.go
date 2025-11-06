@@ -36,3 +36,7 @@ func (s *CartService) Clear(userID string) error {
 func (s *CartService) GetCount(userID string) (int, error) {
 	return s.repo.GetCount(userID)
 }
+
+func (s *CartService) MergeCart(userID string, sessionID string) error {
+	return s.repo.MergeCart(userID, sessionID)
+}

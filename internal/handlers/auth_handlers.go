@@ -38,6 +38,10 @@ func Login(authService *services.AuthService) gin.HandlerFunc {
 			return
 		}
 
+		// После успешного логина корзина синхронизируется на фронте
+		// Фронт должен отправить товары из localStorage на бэк после логина
+		// Используется JWT токен через заголовок Authorization: Bearer <token>
+
 		c.JSON(http.StatusOK, response)
 	}
 }

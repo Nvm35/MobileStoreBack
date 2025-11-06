@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"mobile-store-back/internal/middleware"
 	"mobile-store-back/internal/services"
 	"mobile-store-back/internal/utils"
 	"net/http"
@@ -10,12 +9,17 @@ import (
 	"github.com/google/uuid"
 )
 
-// GetCart - получение корзины пользователя (авторизованного или по сессии)
+// GetCart - получение корзины пользователя (только для авторизованных)
 func GetCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
+		// user_id устанавливается в AuthRequired middleware
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			return
+		}
 		
-		items, err := cartService.GetByUserID(userOrSessionID)
+		items, err := cartService.GetByUserID(userID.(string))
 		utils.HandleInternalError(c, err)
 		if err != nil {
 			return
@@ -25,10 +29,15 @@ func GetCart(cartService *services.CartService) gin.HandlerFunc {
 	}
 }
 
-// AddToCart - добавление товара в корзину (для авторизованных и неавторизованных пользователей)
+// AddToCart - добавление товара в корзину (только для авторизованных)
 func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
+		// user_id устанавливается в AuthRequired middleware
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			return
+		}
 		
 		var req struct {
 			ProductID uuid.UUID `json:"product_id" validate:"required"`
@@ -39,7 +48,7 @@ func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 			return
 		}
 
-		item, err := cartService.AddItem(userOrSessionID, req.ProductID.String(), req.Quantity)
+		item, err := cartService.AddItem(userID.(string), req.ProductID.String(), req.Quantity)
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -49,11 +58,15 @@ func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 	}
 }
 
-// UpdateCartItem - обновление количества товара в корзине
+// UpdateCartItem - обновление количества товара в корзине (только для авторизованных)
 func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			return
+		}
 		
 		var req struct {
 			Quantity int `json:"quantity" validate:"required,min=1"`
@@ -63,7 +76,7 @@ func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 			return
 		}
 
-		item, err := cartService.UpdateItem(id, userOrSessionID, req.Quantity)
+		item, err := cartService.UpdateItem(id, userID.(string), req.Quantity)
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -73,13 +86,17 @@ func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 	}
 }
 
-// RemoveFromCart - удаление товара из корзины
+// RemoveFromCart - удаление товара из корзины (только для авторизованных)
 func RemoveFromCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			return
+		}
 		
-		err := cartService.RemoveItem(id, userOrSessionID)
+		err := cartService.RemoveItem(id, userID.(string))
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -89,12 +106,16 @@ func RemoveFromCart(cartService *services.CartService) gin.HandlerFunc {
 	}
 }
 
-// ClearCart - очистка корзины
+// ClearCart - очистка корзины (только для авторизованных)
 func ClearCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			return
+		}
 		
-		err := cartService.Clear(userOrSessionID)
+		err := cartService.Clear(userID.(string))
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -104,12 +125,16 @@ func ClearCart(cartService *services.CartService) gin.HandlerFunc {
 	}
 }
 
-// GetCartCount - получение количества товаров в корзине
+// GetCartCount - получение количества товаров в корзине (только для авторизованных)
 func GetCartCount(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userOrSessionID, _ := middleware.GetUserOrSessionID(c)
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			return
+		}
 		
-		count, err := cartService.GetCount(userOrSessionID)
+		count, err := cartService.GetCount(userID.(string))
 		utils.HandleInternalError(c, err)
 		if err != nil {
 			return
