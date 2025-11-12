@@ -11,6 +11,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// TokenError представляет различные типы ошибок токена
+type TokenError struct {
+	Type    string // "expired", "invalid", "malformed"
+	Message string
+}
+
+func (e *TokenError) Error() string {
+	return e.Message
+}
+
+var (
+	ErrTokenExpired   = &TokenError{Type: "expired", Message: "Token has expired"}
+	ErrTokenInvalid   = &TokenError{Type: "invalid", Message: "Invalid token"}
+	ErrTokenMalformed = &TokenError{Type: "malformed", Message: "Malformed token"}
+)
+
 type AuthService struct {
 	repo repository.AuthRepository
 	cfg  *config.Config
@@ -128,22 +144,114 @@ func (s *AuthService) ValidateToken(tokenString string) (string, error) {
 	})
 
 	if err != nil {
-		return "", err
+		// Проверяем, истек ли токен (jwt v5)
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return "", ErrTokenExpired
+		}
+		// Проверяем другие типы ошибок
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			return "", ErrTokenMalformed
+		}
+		if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
+			return "", ErrTokenInvalid
+		}
+		// Для других ошибок возвращаем общую ошибку
+		return "", ErrTokenInvalid
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		userID, ok := claims["user_id"].(string)
 		if !ok {
-			return "", errors.New("invalid token claims")
+			return "", ErrTokenInvalid
 		}
 		return userID, nil
 	}
 
-	return "", errors.New("invalid token")
+	return "", ErrTokenInvalid
+}
+
+// ValidateTokenWithClaims возвращает userID и claims токена, даже если токен истек
+// Используется для refresh токена
+func (s *AuthService) ValidateTokenWithClaims(tokenString string) (string, jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return []byte(s.cfg.JWT.Secret), nil
+	})
+
+	// Даже если токен истек, мы можем извлечь claims
+	var claims jwt.MapClaims
+	if token != nil {
+		if c, ok := token.Claims.(jwt.MapClaims); ok {
+			claims = c
+		}
+	}
+
+	if err != nil {
+		// Если токен истек, но claims валидны, возвращаем их
+		if errors.Is(err, jwt.ErrTokenExpired) || (token != nil && claims != nil) {
+			if userID, ok := claims["user_id"].(string); ok {
+				return userID, claims, ErrTokenExpired
+			}
+		}
+		return "", nil, ErrTokenInvalid
+	}
+
+	if claims != nil && token.Valid {
+		userID, ok := claims["user_id"].(string)
+		if !ok {
+			return "", nil, ErrTokenInvalid
+		}
+		return userID, claims, nil
+	}
+
+	return "", nil, ErrTokenInvalid
 }
 
 func (s *AuthService) GetUserByID(userID string) (*models.User, error) {
 	return s.repo.GetUserByID(userID)
+}
+
+// RefreshToken обновляет токен, если старый токен валиден или истек недавно (в пределах grace period)
+// Grace period по умолчанию 7 дней после истечения токена
+func (s *AuthService) RefreshToken(tokenString string) (*AuthResponse, error) {
+	userID, claims, err := s.ValidateTokenWithClaims(tokenString)
+	if err != nil && err != ErrTokenExpired {
+		return nil, errors.New("invalid token")
+	}
+
+	// Проверяем grace period (7 дней после истечения)
+	if err == ErrTokenExpired && claims != nil {
+		if exp, ok := claims["exp"].(float64); ok {
+			expTime := time.Unix(int64(exp), 0)
+			gracePeriod := 7 * 24 * time.Hour // 7 дней
+			if time.Since(expTime) > gracePeriod {
+				return nil, errors.New("token expired too long ago, please login again")
+			}
+		}
+	}
+
+	// Проверяем, что пользователь существует и активен
+	user, err := s.repo.GetUserByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if !user.IsActive {
+		return nil, errors.New("account is deactivated")
+	}
+
+	// Генерируем новый токен
+	newToken, err := s.generateToken(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{
+		Token: newToken,
+		User:  *user,
+	}, nil
 }
 
 func (s *AuthService) generateToken(userID string) (string, error) {

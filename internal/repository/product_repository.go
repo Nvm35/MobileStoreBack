@@ -41,7 +41,7 @@ func (r *productRepository) Create(name string, slug string, description string,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &product, nil
 }
 
@@ -98,11 +98,14 @@ func (r *productRepository) Update(id string, name *string, description *string,
 			product.CategoryID = categoryUUID
 		}
 	}
-	if len(tags) > 0 {
-		product.Tags = tags
-	}
+	// tags всегда обновляется (может быть пустым массивом для очистки)
+	product.Tags = tags
 	if videoURL != nil {
-		product.VideoURL = videoURL
+		if strings.TrimSpace(*videoURL) == "" {
+			product.VideoURL = nil
+		} else {
+			product.VideoURL = videoURL
+		}
 	}
 
 	// Обновляем в базе данных
@@ -129,9 +132,9 @@ func (r *productRepository) List() ([]*models.Product, error) {
 func (r *productRepository) Search(query string) ([]*models.Product, error) {
 	var products []*models.Product
 	searchQuery := "%" + strings.ToLower(query) + "%"
-	
+
 	if err := r.db.Preload("Category").Preload("Images").
-		Where("is_active = ? AND (LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(model) LIKE ?)", 
+		Where("is_active = ? AND (LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(model) LIKE ?)",
 			true, searchQuery, searchQuery, searchQuery, searchQuery).
 		Order("created_at DESC").Find(&products).Error; err != nil {
 		return nil, err
@@ -152,7 +155,7 @@ func (r *productRepository) GetByCategory(categoryID string) ([]*models.Product,
 func (r *productRepository) ListWithFilters(brand, minPrice, maxPrice string) ([]*models.Product, error) {
 	var products []*models.Product
 	query := r.db.Preload("Category").Preload("Images").Where("is_active = ?", true)
-	
+
 	if brand != "" {
 		query = query.Where("brand = ?", brand)
 	}
@@ -162,7 +165,7 @@ func (r *productRepository) ListWithFilters(brand, minPrice, maxPrice string) ([
 	if maxPrice != "" {
 		query = query.Where("base_price <= ?", maxPrice)
 	}
-	
+
 	if err := query.Order("created_at DESC").Find(&products).Error; err != nil {
 		return nil, err
 	}
@@ -190,4 +193,3 @@ func (r *productRepository) GetFeatured() ([]*models.Product, error) {
 
 	return products, nil
 }
-

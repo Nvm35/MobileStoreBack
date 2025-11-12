@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"net/http"
+
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/services"
-	"net/http"
+	"mobile-store-back/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -40,7 +42,6 @@ func GetVariantStocks(warehouseStockService *services.WarehouseStockService) gin
 		c.JSON(http.StatusOK, gin.H{"stocks": stocks})
 	}
 }
-
 
 // CreateWarehouseStock - создание остатка на складе (админ)
 func CreateWarehouseStock(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
@@ -112,5 +113,41 @@ func DeleteWarehouseStock(warehouseStockService *services.WarehouseStockService)
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Warehouse stock deleted successfully"})
+	}
+}
+
+// TransferWarehouseStock - перемещение остатка между складами (админ)
+func TransferWarehouseStock(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			SourceWarehouse      string `json:"source_warehouse" validate:"required"`
+			DestinationWarehouse string `json:"destination_warehouse" validate:"required"`
+			VariantIdentifier    string `json:"variant_identifier" validate:"required"`
+			Quantity             int    `json:"quantity" validate:"required,gt=0"`
+		}
+
+		if !utils.ValidateRequest(c, &req) {
+			return
+		}
+
+		if err := warehouseStockService.TransferStock(req.SourceWarehouse, req.DestinationWarehouse, req.VariantIdentifier, req.Quantity); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Stock transferred successfully"})
+	}
+}
+
+// GetAllWarehouseStocks - получение всех остатков (админ)
+func GetAllWarehouseStocks(warehouseStockService *services.WarehouseStockService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		stocks, err := warehouseStockService.List()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"stocks": stocks})
 	}
 }

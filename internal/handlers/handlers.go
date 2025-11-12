@@ -11,10 +11,10 @@ import (
 func SetupRoutes(router *gin.Engine, services *services.Services, cfg *config.Config) {
 	// Health check (без /api префикса)
 	router.GET("/health", HealthCheck())
-	
+
 	// CORS test endpoint
 	router.GET("/cors-test", CORSTest())
-	
+
 	api := router.Group("/api")
 	{
 		setupPublicRoutes(api, services)
@@ -31,10 +31,10 @@ func setupPublicRoutes(api *gin.RouterGroup, services *services.Services) {
 	{
 		// Аутентификация
 		setupAuthRoutes(public, services)
-		
+
 		// Каталог товаров
 		setupCatalogRoutes(public, services)
-		
+
 		// Корзина (доступна для неавторизованных пользователей через сессии)
 		setupPublicCartRoutes(public, services)
 	}
@@ -45,6 +45,7 @@ func setupAuthRoutes(router *gin.RouterGroup, services *services.Services) {
 	{
 		auth.POST("/register", Register(services.Auth))
 		auth.POST("/login", Login(services.Auth))
+		auth.POST("/refresh", Refresh(services.Auth)) // Обновление токена
 	}
 }
 
@@ -60,9 +61,9 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 	// Продукты (публичные) - основной эндпоинт с поиском и фильтрацией
 	products := router.Group("/products")
 	{
-		products.GET("/", GetProducts(services.Product)) // поддерживает поиск и фильтрацию через query параметры
+		products.GET("/", GetProducts(services.Product))                 // поддерживает поиск и фильтрацию через query параметры
 		products.GET("/featured", GetFeaturedProducts(services.Product)) // товары с feature=true
-		products.GET("/:slug", GetProduct(services.Product)) // поддерживает и slug, и ID
+		products.GET("/:slug", GetProduct(services.Product))             // поддерживает и slug, и ID
 		products.GET("/:slug/reviews", GetProductReviews(services.Review))
 		products.GET("/:slug/variants", GetProductVariantsByProductID(services.ProductVariant))
 	}
@@ -81,7 +82,7 @@ func setupCatalogRoutes(router *gin.RouterGroup, services *services.Services) {
 	{
 		// Остатки по складу
 		stocks.GET("/warehouse/:warehouse_slug", GetWarehouseStocks(services.WarehouseStock))
-		
+
 		// Остатки по варианту товара (используем SKU вместо ID)
 		stocks.GET("/variant/:sku", GetVariantStocks(services.WarehouseStock))
 	}
@@ -117,13 +118,13 @@ func setupProtectedRoutes(api *gin.RouterGroup, services *services.Services) {
 	{
 		// Профиль пользователя
 		setupUserRoutes(protected, services)
-		
+
 		// Покупки (только заказы, корзина доступна публично)
 		setupOrderRoutes(protected, services)
-		
+
 		// Отзывы и рейтинги
 		setupReviewRoutes(protected, services)
-		
+
 	}
 }
 
@@ -167,7 +168,6 @@ func setupReviewRoutes(router *gin.RouterGroup, services *services.Services) {
 	}
 }
 
-
 // ============================================================================
 // АДМИНСКИЕ МАРШРУТЫ (требуют админских прав)
 // ============================================================================
@@ -177,13 +177,13 @@ func setupAdminRoutes(api *gin.RouterGroup, services *services.Services) {
 	{
 		// Управление пользователями
 		setupAdminUserRoutes(admin, services)
-		
+
 		// Управление каталогом
 		setupAdminCatalogRoutes(admin, services)
-		
+
 		// Управление заказами
 		setupAdminOrderRoutes(admin, services)
-		
+
 		// Управление контентом
 		setupAdminContentRoutes(admin, services)
 	}
@@ -230,6 +230,7 @@ func setupAdminCatalogRoutes(router *gin.RouterGroup, services *services.Service
 	// Управление складами
 	warehouses := router.Group("/warehouses")
 	{
+		warehouses.GET("/", GetWarehouses(services.Warehouse))
 		warehouses.POST("/", CreateWarehouse(services.Warehouse))
 		warehouses.GET("/:id", GetWarehouse(services.Warehouse))
 		warehouses.PUT("/:id", UpdateWarehouse(services.Warehouse))
@@ -239,8 +240,10 @@ func setupAdminCatalogRoutes(router *gin.RouterGroup, services *services.Service
 	// Управление остатками товаров
 	warehouseStocks := router.Group("/warehouse-stocks")
 	{
+		warehouseStocks.GET("/", GetAllWarehouseStocks(services.WarehouseStock))
 		warehouseStocks.POST("/", CreateWarehouseStock(services.WarehouseStock))
 		warehouseStocks.PUT("/:id", UpdateWarehouseStock(services.WarehouseStock))
+		warehouseStocks.POST("/transfer", TransferWarehouseStock(services.WarehouseStock))
 		warehouseStocks.DELETE("/:id", DeleteWarehouseStock(services.WarehouseStock))
 	}
 
@@ -248,6 +251,7 @@ func setupAdminCatalogRoutes(router *gin.RouterGroup, services *services.Service
 	images := router.Group("/images")
 	{
 		images.POST("/product/:id", UploadProductImage(services.Image))
+		images.PUT("/:id", UpdateImage(services.Image))
 		images.DELETE("/:id", DeleteImage(services.Image))
 		images.PUT("/:id/primary", SetPrimaryImage(services.Image))
 	}

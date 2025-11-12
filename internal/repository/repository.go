@@ -142,7 +142,9 @@ type WarehouseStockRepository interface {
 	ReserveStock(warehouseID, variantID string, quantity int) error
 	ReleaseReservedStock(warehouseID, variantID string, quantity int) error
 	ConsumeStock(warehouseID, variantID string, quantity int) error
+	TransferStock(warehouseFromID, warehouseToID, variantID string, quantity int) error
 	Delete(id string) error
+	List() ([]*models.WarehouseStock, error)
 }
 
 // AddressRepository удален - адреса теперь встроены в User

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"mobile-store-back/internal/services"
 	"net/http"
 	"strings"
@@ -12,21 +13,50 @@ func AuthRequired(authService *services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":    "Authorization header required",
+				"code":     "TOKEN_MISSING",
+				"redirect": true,
+			})
 			c.Abort()
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == authHeader {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Bearer token required"})
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":    "Bearer token required",
+				"code":      "TOKEN_MALFORMED",
+				"redirect":  true,
+			})
 			c.Abort()
 			return
 		}
 
 		userID, err := authService.ValidateToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			// Проверяем тип ошибки токена
+			var tokenErr *services.TokenError
+			if errors.As(err, &tokenErr) {
+				response := gin.H{
+					"error": err.Error(),
+					"code":  "TOKEN_" + strings.ToUpper(tokenErr.Type),
+				}
+				// Если токен истек, предлагаем фронту сделать refresh или редирект
+				if tokenErr.Type == "expired" {
+					response["redirect"] = false // Не редиректим сразу, фронт может попробовать refresh
+					response["can_refresh"] = true
+				} else {
+					response["redirect"] = true
+				}
+				c.JSON(http.StatusUnauthorized, response)
+			} else {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error":    "Invalid token",
+					"code":     "TOKEN_INVALID",
+					"redirect": true,
+				})
+			}
 			c.Abort()
 			return
 		}
@@ -54,7 +84,27 @@ func AdminRequired(authService *services.AuthService) gin.HandlerFunc {
 
 		userID, err := authService.ValidateToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			// Проверяем тип ошибки токена
+			var tokenErr *services.TokenError
+			if errors.As(err, &tokenErr) {
+				response := gin.H{
+					"error": err.Error(),
+					"code":  "TOKEN_" + strings.ToUpper(tokenErr.Type),
+				}
+				if tokenErr.Type == "expired" {
+					response["redirect"] = false
+					response["can_refresh"] = true
+				} else {
+					response["redirect"] = true
+				}
+				c.JSON(http.StatusUnauthorized, response)
+			} else {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error":    "Invalid token",
+					"code":     "TOKEN_INVALID",
+					"redirect": true,
+				})
+			}
 			c.Abort()
 			return
 		}

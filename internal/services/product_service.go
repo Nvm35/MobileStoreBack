@@ -39,14 +39,20 @@ func (s *ProductService) GetBySKU(sku string) (*models.Product, error) {
 	return s.repo.GetBySKU(sku)
 }
 
-func (s *ProductService) Update(id string, name *string, description *string, basePrice *float64, isActive *bool, feature *bool, brand *string, model *string, material *string, categoryID *uuid.UUID, tags []string, videoURL *string) (*models.Product, error) {
+func (s *ProductService) Update(id string, name *string, description *string, basePrice *float64, isActive *bool, feature *bool, brand *string, model *string, material *string, categoryID *uuid.UUID, tags *[]string, videoURL *string) (*models.Product, error) {
 	var categoryIDStr *string
 	if categoryID != nil {
 		s := categoryID.String()
 		categoryIDStr = &s
 	}
 
-	return s.repo.Update(id, name, description, basePrice, isActive, feature, brand, model, material, categoryIDStr, tags, videoURL)
+	// Преобразуем *[]string в []string (если nil, передаем пустой слайс)
+	var tagsSlice []string
+	if tags != nil {
+		tagsSlice = *tags
+	}
+
+	return s.repo.Update(id, name, description, basePrice, isActive, feature, brand, model, material, categoryIDStr, tagsSlice, videoURL)
 }
 
 func (s *ProductService) Delete(id string) error {

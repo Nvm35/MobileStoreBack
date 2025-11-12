@@ -57,10 +57,10 @@ func UploadProductImage(imageService *services.ImageService) gin.HandlerFunc {
 		// Создаем изображение
 		productUUID, _ := uuid.Parse(productID)
 		image := &models.Image{
-			ProductID:         productUUID,
+			ProductID:          productUUID,
 			CloudinaryPublicID: req.CloudinaryPublicID,
-			URL:               req.URL,
-			IsPrimary:         req.IsPrimary,
+			URL:                req.URL,
+			IsPrimary:          req.IsPrimary,
 		}
 
 		if err := imageService.Create(image); err != nil {
@@ -70,15 +70,11 @@ func UploadProductImage(imageService *services.ImageService) gin.HandlerFunc {
 
 		// Если это главное изображение, убираем primary с других
 		if req.IsPrimary {
-			// Получаем все изображения товара
-			images, err := imageService.GetByProductID(productID)
-			if err == nil {
-				for _, img := range images {
-					if img.ID != image.ID && img.IsPrimary {
-						imageService.Update(img.ID.String(), nil, nil, &[]bool{false}[0])
-					}
-				}
+			if err := imageService.SetPrimary(image.ID.String()); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
 			}
+			image.IsPrimary = true
 		}
 
 		c.JSON(http.StatusCreated, image)
@@ -130,5 +126,40 @@ func SetPrimaryImage(imageService *services.ImageService) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Primary image updated successfully"})
+	}
+}
+
+// UpdateImage - обновление изображения товара (админ)
+func UpdateImage(imageService *services.ImageService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		imageID := c.Param("id")
+		if imageID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "image id is required"})
+			return
+		}
+
+		if _, err := uuid.Parse(imageID); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid image id format"})
+			return
+		}
+
+		var req struct {
+			CloudinaryPublicID *string `json:"cloudinary_public_id"`
+			URL                *string `json:"url"`
+			IsPrimary          *bool   `json:"is_primary"`
+		}
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		image, err := imageService.Update(imageID, req.CloudinaryPublicID, req.URL, req.IsPrimary)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, image)
 	}
 }

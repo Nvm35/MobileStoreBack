@@ -45,3 +45,42 @@ func Login(authService *services.AuthService) gin.HandlerFunc {
 		c.JSON(http.StatusOK, response)
 	}
 }
+
+// Refresh обновляет JWT токен
+func Refresh(authService *services.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Authorization header required",
+				"code":  "TOKEN_MISSING",
+			})
+			return
+		}
+
+		tokenString := authHeader
+		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+			tokenString = tokenString[7:]
+		}
+
+		response, err := authService.RefreshToken(tokenString)
+		if err != nil {
+			// Если токен истек слишком давно, возвращаем специальный код
+			if err.Error() == "token expired too long ago, please login again" {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error": err.Error(),
+					"code":  "TOKEN_EXPIRED_TOO_LONG",
+					"redirect": true,
+				})
+				return
+			}
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": err.Error(),
+				"code":  "TOKEN_INVALID",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+}

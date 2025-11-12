@@ -37,7 +37,19 @@ func (s *ImageService) GetPrimaryByProductID(productID string) (*models.Image, e
 }
 
 func (s *ImageService) Update(id string, cloudinaryPublicID *string, url *string, isPrimary *bool) (*models.Image, error) {
-	return s.repo.Update(id, cloudinaryPublicID, url, isPrimary)
+	image, err := s.repo.Update(id, cloudinaryPublicID, url, isPrimary)
+	if err != nil {
+		return nil, err
+	}
+
+	if isPrimary != nil && *isPrimary {
+		if err := s.repo.SetPrimary(id); err != nil {
+			return nil, err
+		}
+		return s.repo.GetByID(id)
+	}
+
+	return image, nil
 }
 
 func (s *ImageService) SetPrimary(id string) error {

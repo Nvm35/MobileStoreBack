@@ -2,17 +2,22 @@ package services
 
 import (
 	"errors"
+
+	"github.com/google/uuid"
+
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/repository"
 )
 
 type ProductVariantService struct {
-	repo repository.ProductVariantRepository
+	repo        repository.ProductVariantRepository
+	productRepo repository.ProductRepository
 }
 
-func NewProductVariantService(repo repository.ProductVariantRepository) *ProductVariantService {
+func NewProductVariantService(repo repository.ProductVariantRepository, productRepo repository.ProductRepository) *ProductVariantService {
 	return &ProductVariantService{
-		repo: repo,
+		repo:        repo,
+		productRepo: productRepo,
 	}
 }
 
@@ -42,7 +47,19 @@ func (s *ProductVariantService) Delete(id string) error {
 
 // GetByProductSlugOrID - получение вариантов товара по slug или ID продукта
 func (s *ProductVariantService) GetByProductSlugOrID(identifier string) ([]*models.ProductVariant, error) {
-	// Пока возвращаем ошибку, так как нужен доступ к ProductService
-	return nil, errors.New("not implemented - need ProductService dependency")
-}
+	if s.productRepo == nil {
+		return nil, errors.New("product repository dependency is not configured")
+	}
 
+	// Если пришел UUID, работаем напрямую
+	if _, err := uuid.Parse(identifier); err == nil {
+		return s.repo.GetByProductID(identifier)
+	}
+
+	product, err := s.productRepo.GetBySlug(identifier)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetByProductID(product.ID.String())
+}

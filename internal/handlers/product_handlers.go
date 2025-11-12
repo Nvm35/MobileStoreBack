@@ -45,7 +45,7 @@ func GetProducts(productService *services.ProductService) gin.HandlerFunc {
 func GetProduct(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		identifier := c.Param("slug") // Может быть как ID, так и slug
-		
+
 		// Пробуем найти по slug или ID
 		product, err := productService.GetBySlugOrID(identifier)
 		if err != nil {
@@ -56,7 +56,6 @@ func GetProduct(productService *services.ProductService) gin.HandlerFunc {
 		c.JSON(http.StatusOK, product)
 	}
 }
-
 
 func CreateProduct(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -103,7 +102,7 @@ func UpdateProduct(productService *services.ProductService) gin.HandlerFunc {
 			Model       *string    `json:"model"`
 			Material    *string    `json:"material"`
 			CategoryID  *uuid.UUID `json:"category_id"`
-			Tags        []string   `json:"tags"`
+			Tags        *[]string  `json:"tags"`
 			VideoURL    *string    `json:"video_url" validate:"omitempty,url"`
 		}
 
@@ -124,7 +123,7 @@ func UpdateProduct(productService *services.ProductService) gin.HandlerFunc {
 func DeleteProduct(productService *services.ProductService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		
+
 		err := productService.Delete(id)
 		utils.HandleError(c, err)
 		if err != nil {
@@ -146,4 +145,3 @@ func GetFeaturedProducts(productService *services.ProductService) gin.HandlerFun
 		c.JSON(http.StatusOK, gin.H{"products": products})
 	}
 }
-
