@@ -86,13 +86,13 @@ func (r *cartRepository) AddItem(userID string, productID string, quantity int) 
 		}
 		
 		// Товара нет, создаем новый
-		// Не устанавливаем SessionID, чтобы избежать конфликтов с уникальным индексом
+		// SessionID не используется, так как корзина работает только для авторизованных пользователей
 		item = models.CartItem{
 			UserID:    userUUID,
 			ProductID: productUUID,
 			Quantity:  quantity,
 			Price:     product.BasePrice,
-			// SessionID не устанавливаем - оставляем пустым (NULL в БД)
+			// SessionID остается nil (NULL в БД) - не используется в текущей логике
 		}
 		
 		// Создаем запись

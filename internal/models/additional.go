@@ -12,7 +12,7 @@ import (
 type CartItem struct {
 	ID        uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	UserID    uuid.UUID `json:"user_id" gorm:"type:uuid;not null;index"`
-	SessionID *string   `json:"session_id,omitempty" gorm:"type:varchar(255)"` // Используем указатель, чтобы NULL в БД был пустой строкой
+	SessionID *string   `json:"session_id,omitempty" gorm:"type:varchar(255)"` // Не используется в текущей логике (корзина только для авторизованных)
 	ProductID uuid.UUID `json:"product_id" gorm:"type:uuid;not null;index"`
 	Quantity  int       `json:"quantity" gorm:"not null" validate:"required,min=1"`
 	Price     float64   `json:"price" gorm:"type:decimal(10,2);not null" validate:"min=0"`
