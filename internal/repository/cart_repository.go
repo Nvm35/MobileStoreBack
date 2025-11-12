@@ -3,11 +3,21 @@ package repository
 import (
 	"errors"
 	"mobile-store-back/internal/models"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
+
+// UniqueConstraintError - специальная ошибка для обработки unique constraint вне транзакции
+type UniqueConstraintError struct {
+	Err error
+}
+
+func (e *UniqueConstraintError) Error() string {
+	return e.Err.Error()
+}
 
 type cartRepository struct {
 	db    *gorm.DB
@@ -45,36 +55,81 @@ func (r *cartRepository) AddItem(userID string, productID string, quantity int) 
 	var product models.Product
 	productUUID, err := uuid.Parse(productID)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid product ID format")
 	}
 	
-	err = r.db.First(&product, "id = ?", productUUID).Error
+	// Проверяем, что товар существует и активен
+	err = r.db.Where("id = ? AND is_active = ?", productUUID, true).First(&product).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("product not found or inactive")
+		}
 		return nil, err
 	}
 	
-	// Проверяем, есть ли уже такой товар в корзине
-	var existingItem models.CartItem
-	err = r.db.Where("user_id = ? AND product_id = ?", userUUID, productUUID).First(&existingItem).Error
+	// Используем транзакцию для атомарности и предотвращения race condition
+	var item models.CartItem
+	err = r.db.Transaction(func(tx *gorm.DB) error {
+		// Проверяем, есть ли уже такой товар в корзине
+		err := tx.Where("user_id = ? AND product_id = ?", userUUID, productUUID).First(&item).Error
+		
+		if err == nil {
+			// Товар уже есть в корзине - обновляем количество (upsert логика)
+			item.Quantity += quantity
+			item.Price = product.BasePrice // Обновляем цену на актуальную
+			return tx.Save(&item).Error
+		}
+		
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			// Другая ошибка при поиске
+			return err
+		}
+		
+		// Товара нет, создаем новый
+		// Не устанавливаем SessionID, чтобы избежать конфликтов с уникальным индексом
+		item = models.CartItem{
+			UserID:    userUUID,
+			ProductID: productUUID,
+			Quantity:  quantity,
+			Price:     product.BasePrice,
+			// SessionID не устанавливаем - оставляем пустым (NULL в БД)
+		}
+		
+		// Создаем запись
+		err = tx.Create(&item).Error
+		if err != nil {
+			// Проверяем, не ошибка ли это unique constraint (race condition)
+			if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "UNIQUE constraint") {
+				// Транзакция помечена как aborted, нужно откатить и начать новую
+				// Возвращаем специальную ошибку, чтобы обработать её вне транзакции
+				return &UniqueConstraintError{Err: err}
+			}
+			return err
+		}
+		
+		return nil
+	})
 	
-	if err == nil {
-		// Товар уже есть в корзине - возвращаем ошибку
-		// Фронтенд должен использовать UpdateItem для обновления количества
-		return nil, errors.New("item already exists in cart, use UpdateItem to change quantity")
-	}
-	
-	// Товара нет, создаем новый
-	item := models.CartItem{
-		UserID:    userUUID,
-		ProductID: productUUID,
-		Quantity:  quantity,
-		Price:     product.BasePrice,
-	}
-	
-	// Создаем запись напрямую
-	err = r.db.Create(&item).Error
+	// Обрабатываем ошибку unique constraint вне транзакции
 	if err != nil {
-		return nil, err
+		var uniqueErr *UniqueConstraintError
+		if errors.As(err, &uniqueErr) {
+			// Товар был добавлен другим запросом - получаем его и обновляем количество в новой транзакции
+			err = r.db.Transaction(func(tx *gorm.DB) error {
+				err := tx.Where("user_id = ? AND product_id = ?", userUUID, productUUID).First(&item).Error
+				if err != nil {
+					return err
+				}
+				item.Quantity += quantity
+				item.Price = product.BasePrice
+				return tx.Save(&item).Error
+			})
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 	
 	// Загружаем связанные данные

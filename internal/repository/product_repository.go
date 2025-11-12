@@ -47,6 +47,8 @@ func (r *productRepository) Create(name string, slug string, description string,
 
 func (r *productRepository) GetByID(id string) (*models.Product, error) {
 	var product models.Product
+	// Примечание: GetByID используется для админки, поэтому не фильтруем по is_active
+	// Для публичных запросов используется GetBySlug, который проверяет is_active
 	if err := r.db.Preload("Category").Preload("Images").First(&product, "id = ?", id).Error; err != nil {
 		return nil, err
 	}

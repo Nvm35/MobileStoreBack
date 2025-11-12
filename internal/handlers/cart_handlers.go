@@ -4,6 +4,7 @@ import (
 	"mobile-store-back/internal/services"
 	"mobile-store-back/internal/utils"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -49,12 +50,24 @@ func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 		}
 
 		item, err := cartService.AddItem(userID.(string), req.ProductID.String(), req.Quantity)
-		utils.HandleError(c, err)
 		if err != nil {
+			// Обрабатываем разные типы ошибок
+			errMsg := err.Error()
+			if errMsg == "record not found" || strings.Contains(errMsg, "not found") || 
+			   strings.Contains(errMsg, "Product not found") || strings.Contains(errMsg, "product not found or inactive") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Product not found or inactive"})
+			} else if strings.Contains(errMsg, "invalid product ID") {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID format"})
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+			}
 			return
 		}
 
-		c.JSON(http.StatusCreated, item)
+		// Если товар был обновлен (уже существовал), возвращаем 200 OK
+		// Если товар был создан, возвращаем 201 Created
+		// Для простоты всегда возвращаем 200 OK, так как теперь используется upsert логика
+		c.JSON(http.StatusOK, item)
 	}
 }
 
@@ -77,8 +90,12 @@ func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 		}
 
 		item, err := cartService.UpdateItem(id, userID.(string), req.Quantity)
-		utils.HandleError(c, err)
 		if err != nil {
+			if err.Error() == "record not found" || strings.Contains(err.Error(), "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Cart item not found"})
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			}
 			return
 		}
 
@@ -97,8 +114,12 @@ func RemoveFromCart(cartService *services.CartService) gin.HandlerFunc {
 		}
 		
 		err := cartService.RemoveItem(id, userID.(string))
-		utils.HandleError(c, err)
 		if err != nil {
+			if err.Error() == "record not found" || strings.Contains(err.Error(), "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Cart item not found"})
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			}
 			return
 		}
 
