@@ -34,7 +34,8 @@ func CORS() gin.HandlerFunc {
 			allowedOrigin = "*"
 		}
 		
-		// Устанавливаем CORS заголовки
+		// ВАЖНО: Устанавливаем CORS заголовки ДО обработки запроса
+		// Это гарантирует, что заголовки будут в ответе даже при ошибках авторизации
 		if allowedOrigin != "" {
 			c.Header("Access-Control-Allow-Origin", allowedOrigin)
 		}
@@ -43,7 +44,8 @@ func CORS() gin.HandlerFunc {
 		c.Header("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 		c.Header("Access-Control-Max-Age", "86400") // 24 часа
 
-		// Обрабатываем preflight запросы
+		// Обрабатываем preflight запросы (OPTIONS)
+		// Preflight запросы должны обрабатываться ДО проверки авторизации
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
 			return
