@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // GetCart - получение корзины пользователя (только для авторизованных)
@@ -19,7 +18,7 @@ func GetCart(cartService *services.CartService) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			return
 		}
-		
+
 		items, err := cartService.GetByUserID(userID.(string))
 		utils.HandleInternalError(c, err)
 		if err != nil {
@@ -39,25 +38,25 @@ func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			return
 		}
-		
+
 		var req struct {
-			ProductID uuid.UUID `json:"product_id" validate:"required"`
-			Quantity  int       `json:"quantity" validate:"required,min=1"`
+			Product  string `json:"product" validate:"required"`
+			Quantity int    `json:"quantity" validate:"required,min=1"`
 		}
 
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		item, err := cartService.AddItem(userID.(string), req.ProductID.String(), req.Quantity)
+		item, err := cartService.AddItem(userID.(string), req.Product, req.Quantity)
 		if err != nil {
 			// Обрабатываем разные типы ошибок
 			errMsg := err.Error()
-			if errMsg == "record not found" || strings.Contains(errMsg, "not found") || 
-			   strings.Contains(errMsg, "Product not found") || strings.Contains(errMsg, "product not found or inactive") {
+			if errMsg == "record not found" || strings.Contains(errMsg, "not found") ||
+				strings.Contains(errMsg, "Product not found") || strings.Contains(errMsg, "product not found or inactive") {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Product not found or inactive"})
-			} else if strings.Contains(errMsg, "invalid product ID") {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID format"})
+			} else if strings.Contains(errMsg, "invalid product identifier") {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product identifier"})
 			} else {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 			}
@@ -74,13 +73,13 @@ func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 // UpdateCartItem - обновление количества товара в корзине (только для авторизованных)
 func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
+		identifier := c.Param("id")
 		userID, exists := c.Get("user_id")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			return
 		}
-		
+
 		var req struct {
 			Quantity int `json:"quantity" validate:"required,min=1"`
 		}
@@ -89,7 +88,7 @@ func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 			return
 		}
 
-		item, err := cartService.UpdateItem(id, userID.(string), req.Quantity)
+		item, err := cartService.UpdateItem(identifier, userID.(string), req.Quantity)
 		if err != nil {
 			if err.Error() == "record not found" || strings.Contains(err.Error(), "not found") {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Cart item not found"})
@@ -106,14 +105,14 @@ func UpdateCartItem(cartService *services.CartService) gin.HandlerFunc {
 // RemoveFromCart - удаление товара из корзины (только для авторизованных)
 func RemoveFromCart(cartService *services.CartService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
+		identifier := c.Param("id")
 		userID, exists := c.Get("user_id")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			return
 		}
-		
-		err := cartService.RemoveItem(id, userID.(string))
+
+		err := cartService.RemoveItem(identifier, userID.(string))
 		if err != nil {
 			if err.Error() == "record not found" || strings.Contains(err.Error(), "not found") {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Cart item not found"})
@@ -135,7 +134,7 @@ func ClearCart(cartService *services.CartService) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			return
 		}
-		
+
 		err := cartService.Clear(userID.(string))
 		utils.HandleError(c, err)
 		if err != nil {
@@ -154,7 +153,7 @@ func GetCartCount(cartService *services.CartService) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			return
 		}
-		
+
 		count, err := cartService.GetCount(userID.(string))
 		utils.HandleInternalError(c, err)
 		if err != nil {

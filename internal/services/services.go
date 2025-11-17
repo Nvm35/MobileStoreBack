@@ -26,7 +26,7 @@ func New(repos *repository.Repository, cfg *config.Config) *Services {
 		User:           NewUserService(repos.User),
 		Product:        NewProductService(repos.Product),
 		ProductVariant: NewProductVariantService(repos.ProductVariant, repos.Product),
-		Order:          NewOrderService(repos.Order),
+		Order:          NewOrderService(repos.Order, repos.Product, repos.ProductVariant),
 		Cart:           NewCartService(repos.Cart),
 		Wishlist:       NewWishlistService(repos.Wishlist),
 		Review:         NewReviewService(repos.Review),

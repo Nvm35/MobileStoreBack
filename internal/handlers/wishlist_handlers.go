@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // GetWishlist - получение избранного пользователя
@@ -27,9 +26,9 @@ func GetWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 func AddToWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
-		
+
 		var req struct {
-			ProductID uuid.UUID `json:"product_id" validate:"required"`
+			Product string `json:"product" validate:"required"`
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -37,7 +36,7 @@ func AddToWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 			return
 		}
 
-		item, err := wishlistService.AddItem(userID.(string), req.ProductID.String())
+		item, err := wishlistService.AddItem(userID.(string), req.Product)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -50,10 +49,10 @@ func AddToWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 // RemoveFromWishlist - удаление товара из избранного
 func RemoveFromWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
+		identifier := c.Param("id")
 		userID, _ := c.Get("user_id")
-		
-		err := wishlistService.RemoveItem(id, userID.(string))
+
+		err := wishlistService.RemoveItem(identifier, userID.(string))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -67,9 +66,9 @@ func RemoveFromWishlist(wishlistService *services.WishlistService) gin.HandlerFu
 func IsInWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
-		productID := c.Param("product_id")
-		
-		isInWishlist, err := wishlistService.IsInWishlist(userID.(string), productID)
+		productIdentifier := c.Param("product_id")
+
+		isInWishlist, err := wishlistService.IsInWishlist(userID.(string), productIdentifier)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -83,7 +82,7 @@ func IsInWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 func ClearWishlist(wishlistService *services.WishlistService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
-		
+
 		err := wishlistService.Clear(userID.(string))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

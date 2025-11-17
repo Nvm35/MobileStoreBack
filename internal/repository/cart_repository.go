@@ -37,54 +37,47 @@ func (r *cartRepository) GetByUserID(userID string) ([]models.CartItem, error) {
 	return items, err
 }
 
-func (r *cartRepository) AddItem(userID string, productID string, quantity int) (*models.CartItem, error) {
+func (r *cartRepository) AddItem(userID string, productIdentifier string, quantity int) (*models.CartItem, error) {
 	// Парсим userID
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Проверяем, существует ли пользователь
 	var user models.User
 	err = r.db.First(&user, "id = ?", userUUID).Error
 	if err != nil {
 		return nil, err
 	}
-	
-	// Получаем товар для получения цены
-	var product models.Product
-	productUUID, err := uuid.Parse(productID)
-	if err != nil {
-		return nil, errors.New("invalid product ID format")
-	}
-	
-	// Проверяем, что товар существует и активен
-	err = r.db.Where("id = ? AND is_active = ?", productUUID, true).First(&product).Error
+
+	product, err := findProductByIdentifier(r.db, productIdentifier, true)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("product not found or inactive")
 		}
 		return nil, err
 	}
-	
+	productUUID := product.ID
+
 	// Используем транзакцию для атомарности и предотвращения race condition
 	var item models.CartItem
 	err = r.db.Transaction(func(tx *gorm.DB) error {
 		// Проверяем, есть ли уже такой товар в корзине
 		err := tx.Where("user_id = ? AND product_id = ?", userUUID, productUUID).First(&item).Error
-		
+
 		if err == nil {
 			// Товар уже есть в корзине - обновляем количество (upsert логика)
 			item.Quantity += quantity
 			item.Price = product.BasePrice // Обновляем цену на актуальную
 			return tx.Save(&item).Error
 		}
-		
+
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			// Другая ошибка при поиске
 			return err
 		}
-		
+
 		// Товара нет, создаем новый
 		// SessionID не используется, так как корзина работает только для авторизованных пользователей
 		item = models.CartItem{
@@ -94,7 +87,7 @@ func (r *cartRepository) AddItem(userID string, productID string, quantity int) 
 			Price:     product.BasePrice,
 			// SessionID остается nil (NULL в БД) - не используется в текущей логике
 		}
-		
+
 		// Создаем запись
 		err = tx.Create(&item).Error
 		if err != nil {
@@ -106,10 +99,10 @@ func (r *cartRepository) AddItem(userID string, productID string, quantity int) 
 			}
 			return err
 		}
-		
+
 		return nil
 	})
-	
+
 	// Обрабатываем ошибку unique constraint вне транзакции
 	if err != nil {
 		var uniqueErr *UniqueConstraintError
@@ -131,32 +124,61 @@ func (r *cartRepository) AddItem(userID string, productID string, quantity int) 
 			return nil, err
 		}
 	}
-	
+
 	// Загружаем связанные данные
 	err = r.db.Preload("Product").First(&item, item.ID).Error
 	return &item, err
 }
 
-func (r *cartRepository) UpdateItem(id string, userID string, quantity int) (*models.CartItem, error) {
+func (r *cartRepository) UpdateItem(identifier string, userID string, quantity int) (*models.CartItem, error) {
 	var item models.CartItem
-	err := r.db.Where("id = ? AND user_id = ?", id, userID).First(&item).Error
+
+	if id, err := uuid.Parse(identifier); err == nil {
+		if err := r.db.Where("id = ? AND user_id = ?", id, userID).First(&item).Error; err == nil {
+			item.Quantity = quantity
+			if err := r.db.Save(&item).Error; err != nil {
+				return nil, err
+			}
+			err = r.db.Preload("Product").First(&item, item.ID).Error
+			return &item, err
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	}
+
+	productID, err := findProductIDByIdentifier(r.db, identifier)
 	if err != nil {
 		return nil, err
 	}
-	
+
+	if err := r.db.Where("user_id = ? AND product_id = ?", userID, productID).First(&item).Error; err != nil {
+		return nil, err
+	}
+
 	item.Quantity = quantity
-	err = r.db.Save(&item).Error
-	if err != nil {
+	if err := r.db.Save(&item).Error; err != nil {
 		return nil, err
 	}
-	
-	// Загружаем связанные данные
+
 	err = r.db.Preload("Product").First(&item, item.ID).Error
 	return &item, err
 }
 
-func (r *cartRepository) RemoveItem(id string, userID string) error {
-	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&models.CartItem{}).Error
+func (r *cartRepository) RemoveItem(identifier string, userID string) error {
+	if id, err := uuid.Parse(identifier); err == nil {
+		if err := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&models.CartItem{}).Error; err == nil {
+			return nil
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+	}
+
+	productID, err := findProductIDByIdentifier(r.db, identifier)
+	if err != nil {
+		return err
+	}
+
+	return r.db.Where("user_id = ? AND product_id = ?", userID, productID).Delete(&models.CartItem{}).Error
 }
 
 func (r *cartRepository) Clear(userID string) error {
@@ -176,14 +198,14 @@ func (r *cartRepository) MergeCart(userID string, sessionID string) error {
 	// Поскольку в БД user_id NOT NULL, мы не можем иметь записи только с session_id
 	// Но на всякий случай проверяем и удаляем любые ошибочные записи с session_id без валидного user_id
 	// Это не должно происходить, но если миграция не была выполнена, такие записи могут существовать
-	
+
 	// Удаляем записи с session_id, которые не имеют валидного user_id (если такие есть)
 	// В нормальной работе этого не должно быть, так как user_id NOT NULL
 	err := r.db.Exec("DELETE FROM cart_items WHERE session_id = ? AND (user_id IS NULL OR user_id NOT IN (SELECT id FROM users))", sessionID).Error
 	if err != nil {
 		return err
 	}
-	
+
 	// Если frontend отправляет товары после логина, они должны быть добавлены через AddItem
 	// Этот метод просто очищает старые/некорректные записи
 	return nil

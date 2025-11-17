@@ -4,6 +4,7 @@ import (
 	"mobile-store-back/internal/services"
 	"mobile-store-back/internal/utils"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,46 +13,49 @@ import (
 func CreateOrder(orderService *services.OrderService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
-		
+
 		var req struct {
-			Items             []struct {
-				ProductID        uuid.UUID  `json:"product_id" validate:"required"`
-				ProductVariantID *uuid.UUID `json:"product_variant_id"`
-				Quantity         int        `json:"quantity" validate:"required,min=1"`
+			Items []struct {
+				ProductID         *uuid.UUID `json:"product_id"`
+				ProductSlug       *string    `json:"product_slug"`
+				ProductVariantID  *uuid.UUID `json:"product_variant_id"`
+				ProductVariantSKU *string    `json:"product_variant_sku"`
+				Quantity          int        `json:"quantity" validate:"required,min=1"`
 			} `json:"items" validate:"required,min=1"`
 			// Способ доставки
-			ShippingMethod    string `json:"shipping_method" validate:"required,oneof=delivery pickup"`
+			ShippingMethod string `json:"shipping_method" validate:"required,oneof=delivery pickup"`
 			// Адрес доставки (если нужен другой адрес, чем у пользователя)
-			ShippingAddress   string `json:"shipping_address"`
+			ShippingAddress string `json:"shipping_address"`
 			// Пункт самовывоза (если выбран pickup)
-			PickupPoint       string `json:"pickup_point"`
-			PaymentMethod     string     `json:"payment_method" validate:"required,oneof=cash card transfer"`
-			CustomerNotes     string     `json:"customer_notes"`
+			PickupPoint   string `json:"pickup_point"`
+			PaymentMethod string `json:"payment_method" validate:"required,oneof=cash card transfer"`
+			CustomerNotes string `json:"customer_notes"`
 		}
 
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		// Конвертируем структуры для service
-		items := make([]struct {
-			ProductID        uuid.UUID
-			ProductVariantID *uuid.UUID
-			Quantity         int
-		}, len(req.Items))
-		
+		items := make([]services.OrderItemInput, len(req.Items))
+
 		for i, item := range req.Items {
-			items[i] = struct {
-				ProductID        uuid.UUID
-				ProductVariantID *uuid.UUID
-				Quantity         int
-			}{
-				ProductID:        item.ProductID,
-				ProductVariantID: item.ProductVariantID,
-				Quantity:         item.Quantity,
+			productSlug := normalizePointer(item.ProductSlug)
+			variantSKU := normalizePointer(item.ProductVariantSKU)
+
+			if item.ProductID == nil && productSlug == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Each item must include product_id or product_slug"})
+				return
+			}
+
+			items[i] = services.OrderItemInput{
+				ProductID:         item.ProductID,
+				ProductSlug:       productSlug,
+				ProductVariantID:  item.ProductVariantID,
+				ProductVariantSKU: variantSKU,
+				Quantity:          item.Quantity,
 			}
 		}
-		
+
 		order, err := orderService.Create(userID.(string), items, req.ShippingMethod, req.ShippingAddress, req.PickupPoint, req.PaymentMethod, req.CustomerNotes)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -78,9 +82,9 @@ func GetUserOrders(orderService *services.OrderService) gin.HandlerFunc {
 
 func GetOrder(orderService *services.OrderService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
-		
-		order, err := orderService.GetByID(id)
+		identifier := c.Param("identifier")
+
+		order, err := orderService.GetByID(identifier)
 		utils.HandleNotFound(c, err, "Order not found")
 		if err != nil {
 			return
@@ -92,27 +96,27 @@ func GetOrder(orderService *services.OrderService) gin.HandlerFunc {
 
 func UpdateOrder(orderService *services.OrderService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
+		identifier := c.Param("identifier")
 		userID, _ := c.Get("user_id")
-		
+
 		var req struct {
-			Status            *string    `json:"status" validate:"omitempty,oneof=pending confirmed processing shipped delivered cancelled returned"`
-			PaymentStatus     *string    `json:"payment_status" validate:"omitempty,oneof=pending paid failed refunded cancelled"`
-			TrackingNumber    *string    `json:"tracking_number"`
-			CustomerNotes     *string    `json:"customer_notes"`
+			Status         *string `json:"status" validate:"omitempty,oneof=pending confirmed processing shipped delivered cancelled returned"`
+			PaymentStatus  *string `json:"payment_status" validate:"omitempty,oneof=pending paid failed refunded cancelled"`
+			TrackingNumber *string `json:"tracking_number"`
+			CustomerNotes  *string `json:"customer_notes"`
 			// Способ доставки
-			ShippingMethod    *string `json:"shipping_method" validate:"omitempty,oneof=delivery pickup"`
+			ShippingMethod *string `json:"shipping_method" validate:"omitempty,oneof=delivery pickup"`
 			// Адрес доставки (если нужен другой адрес, чем у пользователя)
-			ShippingAddress   *string `json:"shipping_address"`
+			ShippingAddress *string `json:"shipping_address"`
 			// Пункт самовывоза (если выбран pickup)
-			PickupPoint       *string `json:"pickup_point"`
+			PickupPoint *string `json:"pickup_point"`
 		}
 
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		order, err := orderService.Update(id, userID.(string), req.Status, req.PaymentStatus, req.TrackingNumber, req.CustomerNotes, req.ShippingMethod, req.ShippingAddress, req.PickupPoint)
+		order, err := orderService.Update(identifier, userID.(string), req.Status, req.PaymentStatus, req.TrackingNumber, req.CustomerNotes, req.ShippingMethod, req.ShippingAddress, req.PickupPoint)
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -136,8 +140,8 @@ func GetAllOrders(orderService *services.OrderService) gin.HandlerFunc {
 
 func UpdateOrderStatus(orderService *services.OrderService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
-		
+		identifier := c.Param("identifier")
+
 		var req struct {
 			Status         string  `json:"status" validate:"required,oneof=pending confirmed processing shipped delivered cancelled returned"`
 			TrackingNumber *string `json:"tracking_number"`
@@ -153,7 +157,7 @@ func UpdateOrderStatus(orderService *services.OrderService) gin.HandlerFunc {
 			return
 		}
 
-		order, err := orderService.UpdateStatus(id, req.Status, req.TrackingNumber)
+		order, err := orderService.UpdateStatus(identifier, req.Status, req.TrackingNumber)
 		utils.HandleError(c, err)
 		if err != nil {
 			return
@@ -161,4 +165,17 @@ func UpdateOrderStatus(orderService *services.OrderService) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, order)
 	}
+}
+
+func normalizePointer(value *string) *string {
+	if value == nil {
+		return nil
+	}
+
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+
+	return &trimmed
 }

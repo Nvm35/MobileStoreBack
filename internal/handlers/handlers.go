@@ -142,8 +142,8 @@ func setupOrderRoutes(router *gin.RouterGroup, services *services.Services) {
 	{
 		orders.POST("/", CreateOrder(services.Order))
 		orders.GET("/", GetUserOrders(services.Order))
-		orders.GET("/:id", GetOrder(services.Order))
-		orders.PUT("/:id", UpdateOrder(services.Order))
+		orders.GET("/:identifier", GetOrder(services.Order))
+		orders.PUT("/:identifier", UpdateOrder(services.Order))
 	}
 
 	// Избранное (только для авторизованных пользователей)
@@ -262,7 +262,7 @@ func setupAdminOrderRoutes(router *gin.RouterGroup, services *services.Services)
 	orders := router.Group("/orders")
 	{
 		orders.GET("/", GetAllOrders(services.Order))
-		orders.PUT("/:id/status", UpdateOrderStatus(services.Order))
+		orders.PUT("/:identifier/status", UpdateOrderStatus(services.Order))
 	}
 }
 

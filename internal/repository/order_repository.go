@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 	"mobile-store-back/internal/models"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,7 +27,7 @@ func (r *orderRepository) Create(userID string, items []struct {
 	Quantity         int
 }, shippingMethod string, shippingAddress string, pickupPoint string, paymentMethod string, customerNotes string) (*models.Order, error) {
 	var createdOrder *models.Order
-	
+
 	// Начинаем транзакцию
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		// Парсим userID
@@ -41,8 +42,10 @@ func (r *orderRepository) Create(userID string, items []struct {
 			return fmt.Errorf("main warehouse not found: %w", err)
 		}
 
-		// Генерируем номер заказа
-		orderNumber := fmt.Sprintf("ORD-%d", time.Now().UnixNano())
+		orderNumber := fmt.Sprintf("ORD-%s-%s",
+			time.Now().UTC().Format("060102"),
+			strings.ToUpper(uuid.New().String()[0:6]),
+		)
 
 		// Подготавливаем данные для заказа
 		var totalAmount float64
@@ -91,7 +94,7 @@ func (r *orderRepository) Create(userID string, items []struct {
 			if variantUUID != nil {
 				var warehouseStock models.WarehouseStock
 				err := tx.Where("warehouse_id = ? AND product_variant_id = ?", mainWarehouse.ID, variantUUID).First(&warehouseStock).Error
-				
+
 				if err != nil {
 					return fmt.Errorf("stock not found for variant %s on warehouse", variantUUID.String())
 				}
@@ -164,18 +167,18 @@ func (r *orderRepository) Create(userID string, items []struct {
 		createdOrder = &order
 		return nil
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return createdOrder, nil
 }
 
-func (r *orderRepository) GetByID(id string) (*models.Order, error) {
+func (r *orderRepository) GetByID(identifier string) (*models.Order, error) {
 	var order models.Order
-	if err := r.db.Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.ProductVariant").
-		First(&order, "id = ?", id).Error; err != nil {
+	query := r.db.Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.ProductVariant")
+	if err := applyOrderIdentifierFilter(query, identifier).First(&order).Error; err != nil {
 		return nil, err
 	}
 	return &order, nil
@@ -192,13 +195,13 @@ func (r *orderRepository) GetByUserID(userID string) ([]*models.Order, error) {
 	return orders, nil
 }
 
-func (r *orderRepository) Update(id string, userID string, status *string, paymentStatus *string, trackingNumber *string, customerNotes *string, shippingMethod *string, shippingAddress *string, pickupPoint *string) (*models.Order, error) {
+func (r *orderRepository) Update(identifier string, userID string, status *string, paymentStatus *string, trackingNumber *string, customerNotes *string, shippingMethod *string, shippingAddress *string, pickupPoint *string) (*models.Order, error) {
 	var order models.Order
-	err := r.db.Where("id = ? AND user_id = ?", id, userID).First(&order).Error
+	err := applyOrderIdentifierFilter(r.db, identifier).Where("user_id = ?", userID).First(&order).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if status != nil {
 		order.Status = models.OrderStatus(*status)
 	}
@@ -221,30 +224,30 @@ func (r *orderRepository) Update(id string, userID string, status *string, payme
 	if pickupPoint != nil {
 		order.PickupPoint = *pickupPoint
 	}
-	
+
 	err = r.db.Save(&order).Error
 	return &order, err
 }
 
-func (r *orderRepository) UpdateStatus(id string, status string, trackingNumber *string) (*models.Order, error) {
+func (r *orderRepository) UpdateStatus(identifier string, status string, trackingNumber *string) (*models.Order, error) {
 	var order models.Order
-	err := r.db.Where("id = ?", id).First(&order).Error
+	err := applyOrderIdentifierFilter(r.db, identifier).First(&order).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	order.Status = models.OrderStatus(status)
 	if trackingNumber != nil {
 		order.TrackingNumber = *trackingNumber
 	}
 	// AdminNotes удален из модели
-	
+
 	err = r.db.Save(&order).Error
 	return &order, err
 }
 
-func (r *orderRepository) Delete(id string) error {
-	return r.db.Delete(&models.Order{}, "id = ?", id).Error
+func (r *orderRepository) Delete(identifier string) error {
+	return applyOrderIdentifierFilter(r.db, identifier).Delete(&models.Order{}).Error
 }
 
 func (r *orderRepository) List() ([]*models.Order, error) {
@@ -255,4 +258,11 @@ func (r *orderRepository) List() ([]*models.Order, error) {
 		return nil, err
 	}
 	return orders, nil
+}
+
+func applyOrderIdentifierFilter(db *gorm.DB, identifier string) *gorm.DB {
+	if _, err := uuid.Parse(identifier); err == nil {
+		return db.Where("id = ?", identifier)
+	}
+	return db.Where("order_number = ?", identifier)
 }
