@@ -21,16 +21,11 @@ type User struct {
 	PasswordResetToken     string          `json:"-" gorm:"type:varchar(255)"`
 	PasswordResetExpires   *time.Time      `json:"-"`
 	LastLogin              *time.Time      `json:"last_login"`
-	// Адрес пользователя (встроенный)
-	AddressTitle           string          `json:"address_title" gorm:"type:varchar(255)"`
-	AddressFirstName        string          `json:"address_first_name" gorm:"type:varchar(255)"`
-	AddressLastName         string          `json:"address_last_name" gorm:"type:varchar(255)"`
+	// Адрес доставки пользователя (основной адрес)
 	AddressStreet           string          `json:"address_street" gorm:"type:text"`
 	AddressCity             string          `json:"address_city" gorm:"type:varchar(255)"`
 	AddressState            string          `json:"address_state" gorm:"type:varchar(255)"`
 	AddressPostalCode       string          `json:"address_postal_code" gorm:"type:varchar(20)"`
-	AddressCountry          string          `json:"address_country" gorm:"type:varchar(255)"`
-	AddressPhone            string          `json:"address_phone" gorm:"type:varchar(20)"`
 	CreatedAt              time.Time       `json:"created_at"`
 	UpdatedAt              time.Time       `json:"updated_at"`
 	DeletedAt              gorm.DeletedAt `json:"-" gorm:"index"`

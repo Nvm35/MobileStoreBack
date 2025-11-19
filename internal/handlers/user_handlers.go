@@ -27,16 +27,29 @@ func UpdateProfile(userService *services.UserService) gin.HandlerFunc {
 		userID, _ := c.Get("user_id")
 		
 		var req struct {
-			FirstName *string `json:"first_name" validate:"omitempty,min=2"`
-			LastName  *string `json:"last_name" validate:"omitempty,min=2"`
-			Phone     *string `json:"phone" validate:"omitempty,e164"`
+			FirstName         *string `json:"first_name" validate:"omitempty,min=2"`
+			LastName          *string `json:"last_name" validate:"omitempty,min=2"`
+			Phone             *string `json:"phone" validate:"omitempty,e164"`
+			AddressStreet     *string `json:"address_street"`
+			AddressCity       *string `json:"address_city"`
+			AddressState      *string `json:"address_state"`
+			AddressPostalCode *string `json:"address_postal_code"`
 		}
 
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		user, err := userService.UpdateProfile(userID.(string), req.FirstName, req.LastName, req.Phone)
+		user, err := userService.UpdateProfile(
+			userID.(string),
+			req.FirstName,
+			req.LastName,
+			req.Phone,
+			req.AddressStreet,
+			req.AddressCity,
+			req.AddressState,
+			req.AddressPostalCode,
+		)
 		utils.HandleError(c, err)
 		if err != nil {
 			return

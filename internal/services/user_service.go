@@ -23,8 +23,26 @@ func (s *UserService) GetByEmail(email string) (*models.User, error) {
 	return s.repo.GetByEmail(email)
 }
 
-func (s *UserService) UpdateProfile(userID string, firstName *string, lastName *string, phone *string) (*models.User, error) {
-	return s.repo.UpdateProfile(userID, firstName, lastName, phone)
+func (s *UserService) UpdateProfile(
+	userID string,
+	firstName *string,
+	lastName *string,
+	phone *string,
+	addressStreet *string,
+	addressCity *string,
+	addressState *string,
+	addressPostalCode *string,
+) (*models.User, error) {
+	return s.repo.UpdateProfile(
+		userID,
+		firstName,
+		lastName,
+		phone,
+		addressStreet,
+		addressCity,
+		addressState,
+		addressPostalCode,
+	)
 }
 
 func (s *UserService) Update(id string, firstName *string, lastName *string, phone *string, isActive *bool, role *string) (*models.User, error) {

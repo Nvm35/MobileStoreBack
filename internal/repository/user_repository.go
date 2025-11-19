@@ -59,13 +59,23 @@ func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *userRepository) UpdateProfile(userID string, firstName *string, lastName *string, phone *string) (*models.User, error) {
+func (r *userRepository) UpdateProfile(
+	userID string,
+	firstName *string,
+	lastName *string,
+	phone *string,
+	addressStreet *string,
+	addressCity *string,
+	addressState *string,
+	addressPostalCode *string,
+) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
 	
+	// Обновление основных полей
 	if firstName != nil {
 		user.FirstName = *firstName
 	}
@@ -74,6 +84,20 @@ func (r *userRepository) UpdateProfile(userID string, firstName *string, lastNam
 	}
 	if phone != nil {
 		user.Phone = *phone
+	}
+	
+	// Обновление полей адреса
+	if addressStreet != nil {
+		user.AddressStreet = *addressStreet
+	}
+	if addressCity != nil {
+		user.AddressCity = *addressCity
+	}
+	if addressState != nil {
+		user.AddressState = *addressState
+	}
+	if addressPostalCode != nil {
+		user.AddressPostalCode = *addressPostalCode
 	}
 	
 	err = r.db.Save(&user).Error

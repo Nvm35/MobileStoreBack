@@ -34,16 +34,11 @@ CREATE TABLE IF NOT EXISTS users (
     password_reset_token VARCHAR(255),
     password_reset_expires TIMESTAMP,
     last_login TIMESTAMP,
-    -- Адрес пользователя (вместо отдельной таблицы addresses)
-    address_title VARCHAR(255),
-    address_first_name VARCHAR(255),
-    address_last_name VARCHAR(255),
+    -- Адрес доставки пользователя (имя берется из first_name/last_name, телефон из phone)
     address_street TEXT,
     address_city VARCHAR(255),
     address_state VARCHAR(255),
     address_postal_code VARCHAR(20),
-    address_country VARCHAR(255),
-    address_phone VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
