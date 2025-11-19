@@ -9,6 +9,7 @@ import (
 	"mobile-store-back/internal/repository"
 	"mobile-store-back/internal/services"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -22,7 +23,7 @@ import (
 func main() {
 	// Инициализация конфигурации
 	cfg := config.Load()
-	
+
 	// Устанавливаем режим Gin в зависимости от окружения
 	if cfg.Env == "production" || cfg.Env == "render" {
 		gin.SetMode(gin.ReleaseMode)
@@ -62,8 +63,24 @@ func main() {
 	// Инициализация обработчиков
 	handlers.SetupRoutes(router, services, cfg)
 
+	// Запуск фоновой задачи очистки истекших сессий (каждые 24 часа)
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+
+		logger.Info("Session cleanup worker started")
+
+		for range ticker.C {
+			if err := repos.Auth.DeleteExpiredSessions(); err != nil {
+				logger.Error("Failed to delete expired sessions", zap.Error(err))
+			} else {
+				logger.Info("Expired sessions cleaned up successfully")
+			}
+		}
+	}()
+
 	// Запуск сервера
-	logger.Info("Starting server", 
+	logger.Info("Starting server",
 		zap.String("host", cfg.Server.Host),
 		zap.Int("port", cfg.Server.Port))
 

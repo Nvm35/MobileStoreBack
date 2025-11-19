@@ -75,6 +75,12 @@ type AuthRepository interface {
 	GetUserByEmail(email string) (*models.User, error)
 	CreateUser(user *models.User) error
 	UpdateUser(user *models.User) error
+	CreateSession(session *models.Session) error
+	UpdateSession(session *models.Session) error
+	GetSessionByID(id string) (*models.Session, error)
+	DeleteSessionByID(id string) error
+	DeleteExpiredSessions() error
+	DeleteOldSessionsForUser(userID string, keepLast int) error
 }
 
 type CartRepository interface {

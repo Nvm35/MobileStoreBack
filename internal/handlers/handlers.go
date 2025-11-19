@@ -17,7 +17,7 @@ func SetupRoutes(router *gin.Engine, services *services.Services, cfg *config.Co
 
 	api := router.Group("/api")
 	{
-		setupPublicRoutes(api, services)
+		setupPublicRoutes(api, services, cfg)
 		setupProtectedRoutes(api, services)
 		setupAdminRoutes(api, services)
 	}
@@ -26,11 +26,11 @@ func SetupRoutes(router *gin.Engine, services *services.Services, cfg *config.Co
 // ============================================================================
 // ПУБЛИЧНЫЕ МАРШРУТЫ (без аутентификации)
 // ============================================================================
-func setupPublicRoutes(api *gin.RouterGroup, services *services.Services) {
+func setupPublicRoutes(api *gin.RouterGroup, services *services.Services, cfg *config.Config) {
 	public := api.Group("/")
 	{
 		// Аутентификация
-		setupAuthRoutes(public, services)
+		setupAuthRoutes(public, services, cfg)
 
 		// Каталог товаров
 		setupCatalogRoutes(public, services)
@@ -40,12 +40,13 @@ func setupPublicRoutes(api *gin.RouterGroup, services *services.Services) {
 	}
 }
 
-func setupAuthRoutes(router *gin.RouterGroup, services *services.Services) {
+func setupAuthRoutes(router *gin.RouterGroup, services *services.Services, cfg *config.Config) {
 	auth := router.Group("/auth")
 	{
-		auth.POST("/register", Register(services.Auth))
-		auth.POST("/login", Login(services.Auth))
-		auth.POST("/refresh", Refresh(services.Auth)) // Обновление токена
+		auth.POST("/register", Register(services.Auth, cfg))
+		auth.POST("/login", Login(services.Auth, cfg))
+		auth.POST("/refresh", Refresh(services.Auth, cfg)) // Обновление токена
+		auth.POST("/logout", Logout(services.Auth, cfg))
 	}
 }
 

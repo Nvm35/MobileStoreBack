@@ -37,7 +37,8 @@ GET /health
 | Method | Endpoint                   | Description                                   |
 | ------ | -------------------------- | --------------------------------------------- |
 | `GET`  | `/products`                | Получить список товаров с фильтрами и поиском |
-| `GET`  | `/products/:slug`          | Получить товар по slug                        |
+| `GET`  | `/products/featured`       | Получить избранные (featured) товары          |
+| `GET`  | `/products/:slug`          | Получить товар по slug или ID                 |
 | `GET`  | `/products/:slug/reviews`  | Получить отзывы товара                        |
 | `GET`  | `/products/:slug/variants` | Получить варианты товара                      |
 
@@ -46,7 +47,7 @@ GET /health
 | Method | Endpoint                     | Description                |
 | ------ | ---------------------------- | -------------------------- |
 | `GET`  | `/categories`                | Получить список категорий  |
-| `GET`  | `/categories/:slug`          | Получить категорию по slug |
+| `GET`  | `/categories/:slug`          | Получить категорию по slug или ID |
 | `GET`  | `/categories/:slug/products` | Получить товары категории  |
 
 **Примеры:**
@@ -69,6 +70,9 @@ GET /api/products?min_price=1000&max_price=5000
 
 # Комбинированные фильтры
 GET /api/products?category_id=uuid-here&brand=Apple&min_price=1000
+
+# Избранные (featured) товары
+GET /api/products/featured
 
 # Получить конкретный товар
 GET /api/products/chehol-apple-iphone-15-pro
@@ -93,7 +97,7 @@ GET /api/categories/chehly-dlya-telefonov/products
 | ------ | ------------------------ | ------------------------- |
 | `GET`  | `/warehouses`            | Получить список складов   |
 | `GET`  | `/warehouses/main`       | Получить главный склад    |
-| `GET`  | `/warehouses/:slug`      | Получить склад по slug    |
+| `GET`  | `/warehouses/:slug`      | Получить склад по slug или ID    |
 | `GET`  | `/warehouses/city/:city` | Получить склады по городу |
 
 **Примеры:**
@@ -112,23 +116,12 @@ GET /api/warehouses/city/Москва
 | `GET`  | `/stocks/warehouse/:warehouse_slug` | Остатки по складу          |
 | `GET`  | `/stocks/variant/:sku`              | Остатки по варианту товара |
 
-**Устаревшие эндпоинты удалены:**
-
-- Все устаревшие эндпоинты остатков товаров были удалены
-- Используйте основные эндпоинты `/stocks/warehouse/:warehouse_slug` и `/stocks/variant/:sku`
-
 **Примеры:**
 
 ```bash
 # Основные эндпоинты
 GET /api/stocks/warehouse/main-warehouse
 GET /api/stocks/variant/APPLE-CASE-IP15P
-
-# Устаревшие эндпоинты (возвращают 301 с перенаправлением)
-GET /api/stocks/variant/APPLE-CASE-IP15P/availability
-GET /api/stocks/variant/APPLE-CASE-IP15P/check?quantity=2
-GET /api/stocks/variant/APPLE-CASE-IP15P/total
-GET /api/stocks/warehouse/main-warehouse/variant/APPLE-CASE-IP15P/check?quantity=1
 ```
 
 **Примечание:**
@@ -149,11 +142,12 @@ GET /api/stocks/warehouse/main-warehouse/variant/APPLE-CASE-IP15P/check?quantity
 GET /api/images/product/chehol-apple-iphone-15-pro
 ```
 
-### 🔍 Дополнительные маршруты
+### 🔐 Аутентификация
 
-| Method | Endpoint      | Description                   |
-| ------ | ------------- | ----------------------------- |
-| `GET`  | `/warehouses` | Альтернативный путь к складам |
+| Method | Endpoint         | Description                 |
+| ------ | ---------------- | --------------------------- |
+| `POST` | `/auth/register` | Регистрация пользователя    |
+| `POST` | `/auth/login`    | Логин (получение JWT токена) |
 
 ---
 
@@ -175,7 +169,7 @@ GET /api/images/product/chehol-apple-iphone-15-pro
 | `GET`  | `/orders/:id` | Получить заказ по ID         |
 | `PUT`  | `/orders/:id` | Обновить заказ               |
 
-### 🛍️ Корзина
+### 🛍️ Корзина (публично, на сессиях)
 
 | Method   | Endpoint      | Description                           |
 | -------- | ------------- | ------------------------------------- |
@@ -230,6 +224,7 @@ GET /api/images/product/chehol-apple-iphone-15-pro
 | `GET`    | `/admin/product-variants/:id` | Получить вариант по ID   |
 | `PUT`    | `/admin/product-variants/:id` | Обновить вариант товара  |
 | `DELETE` | `/admin/product-variants/:id` | Удалить вариант товара   |
+| `GET`    | `/admin/categories`           | Получить список категорий |
 | `POST`   | `/admin/categories`           | Создать категорию        |
 | `GET`    | `/admin/categories/:id`       | Получить категорию по ID |
 | `PUT`    | `/admin/categories/:id`       | Обновить категорию       |

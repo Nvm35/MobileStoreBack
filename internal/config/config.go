@@ -13,6 +13,7 @@ type Config struct {
 	Redis    RedisConfig
 	Server   ServerConfig
 	JWT      JWTConfig
+	Auth     AuthConfig
 	Env      string
 }
 
@@ -36,8 +37,17 @@ type ServerConfig struct {
 }
 
 type JWTConfig struct {
-	Secret      string
-	ExpireHours int
+	Secret             string
+	AccessTokenMinutes int
+}
+
+type AuthConfig struct {
+	RefreshTokenDays      int
+	RefreshCookieName     string
+	RefreshCookiePath     string
+	RefreshCookieDomain   string
+	RefreshCookieSecure   bool
+	RefreshCookieSameSite string
 }
 
 func Load() *Config {
@@ -59,8 +69,16 @@ func Load() *Config {
 			Port: getServerPort(),
 		},
 		JWT: JWTConfig{
-			Secret:      getEnvWithDefault("JWT_SECRET", "your-secret-key-change-in-production"),
-			ExpireHours: getEnvAsIntWithDefault("JWT_EXPIRE_HOURS", 24),
+			Secret:             getEnvWithDefault("JWT_SECRET", "your-secret-key-change-in-production"),
+			AccessTokenMinutes: getEnvAsIntWithDefault("ACCESS_TOKEN_MINUTES", 15),
+		},
+		Auth: AuthConfig{
+			RefreshTokenDays:      getEnvAsIntWithDefault("REFRESH_TOKEN_DAYS", 30),
+			RefreshCookieName:     getEnvWithDefault("REFRESH_COOKIE_NAME", "refresh_token"),
+			RefreshCookiePath:     getEnvWithDefault("REFRESH_COOKIE_PATH", "/api/auth/refresh"),
+			RefreshCookieDomain:   os.Getenv("COOKIE_DOMAIN"),
+			RefreshCookieSecure:   getEnvWithDefault("ENV", "development") == "production",
+			RefreshCookieSameSite: getEnvWithDefault("COOKIE_SAMESITE", "Lax"),
 		},
 		Env: getEnvWithDefault("ENV", "development"),
 	}
@@ -71,7 +89,7 @@ func parseDatabaseConfig() DatabaseConfig {
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
 		return parseDatabaseURL(databaseURL)
 	}
-	
+
 	// Если DATABASE_URL нет, используем отдельные переменные
 	return DatabaseConfig{
 		Host:     os.Getenv("DB_HOST"),
@@ -85,14 +103,14 @@ func parseDatabaseConfig() DatabaseConfig {
 func parseDatabaseURL(databaseURL string) DatabaseConfig {
 	// Убираем префикс postgresql://
 	databaseURL = strings.TrimPrefix(databaseURL, "postgresql://")
-	
+
 	// Парсим URL: user:password@host:port/database?sslmode=require
 	parts := strings.Split(databaseURL, "@")
 	if len(parts) != 2 {
 		// Если формат неправильный, возвращаем пустую конфигурацию
 		return DatabaseConfig{}
 	}
-	
+
 	// Парсим user:password
 	userPass := strings.Split(parts[0], ":")
 	user := userPass[0]
@@ -100,14 +118,14 @@ func parseDatabaseURL(databaseURL string) DatabaseConfig {
 	if len(userPass) > 1 {
 		password = userPass[1]
 	}
-	
+
 	// Парсим host:port/database?sslmode=require
 	hostDB := strings.Split(parts[1], "?")[0] // убираем параметры
 	hostPortDB := strings.Split(hostDB, "/")
 	if len(hostPortDB) != 2 {
 		return DatabaseConfig{}
 	}
-	
+
 	database := hostPortDB[1]
 	hostPort := strings.Split(hostPortDB[0], ":")
 	host := hostPort[0]
@@ -117,7 +135,7 @@ func parseDatabaseURL(databaseURL string) DatabaseConfig {
 			port = p
 		}
 	}
-	
+
 	return DatabaseConfig{
 		Host:     host,
 		Port:     port,
