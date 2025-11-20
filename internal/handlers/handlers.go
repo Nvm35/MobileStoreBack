@@ -187,6 +187,9 @@ func setupAdminRoutes(api *gin.RouterGroup, services *services.Services) {
 
 		// Управление контентом
 		setupAdminContentRoutes(admin, services)
+
+		// Управление Cloudinary
+		setupAdminCloudinaryRoutes(admin, services)
 	}
 }
 
@@ -275,4 +278,15 @@ func setupAdminContentRoutes(router *gin.RouterGroup, services *services.Service
 		reviews.PUT("/:id/approve", ApproveReview(services.Review))
 	}
 
+}
+
+func setupAdminCloudinaryRoutes(router *gin.RouterGroup, services *services.Services) {
+	cloudinary := router.Group("/cloudinary")
+	{
+		cloudinary.GET("/config", CheckCloudinaryConfig(services.Cloudinary)) // для отладки
+		cloudinary.GET("/images", GetCloudinaryImages(services.Cloudinary))
+		cloudinary.GET("/folders", GetCloudinaryFolders(services.Cloudinary))
+		cloudinary.POST("/upload", UploadToCloudinary(services.Cloudinary))
+		cloudinary.DELETE("/images/:public_id", DeleteCloudinaryImage(services.Cloudinary))
+	}
 }

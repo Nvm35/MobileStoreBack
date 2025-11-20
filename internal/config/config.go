@@ -9,12 +9,13 @@ import (
 )
 
 type Config struct {
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Server   ServerConfig
-	JWT      JWTConfig
-	Auth     AuthConfig
-	Env      string
+	Database  DatabaseConfig
+	Redis     RedisConfig
+	Server    ServerConfig
+	JWT       JWTConfig
+	Auth      AuthConfig
+	Cloudinary CloudinaryConfig
+	Env       string
 }
 
 type DatabaseConfig struct {
@@ -50,6 +51,12 @@ type AuthConfig struct {
 	RefreshCookieSameSite string
 }
 
+type CloudinaryConfig struct {
+	CloudName string
+	APIKey    string
+	APISecret string
+}
+
 func Load() *Config {
 	// Загружаем .env файл если он существует
 	godotenv.Load()
@@ -79,6 +86,11 @@ func Load() *Config {
 			RefreshCookieDomain:   os.Getenv("COOKIE_DOMAIN"),
 			RefreshCookieSecure:   getEnvWithDefault("ENV", "development") == "production",
 			RefreshCookieSameSite: getEnvWithDefault("COOKIE_SAMESITE", "Lax"),
+		},
+		Cloudinary: CloudinaryConfig{
+			CloudName: os.Getenv("CLOUDINARY_CLOUD_NAME"),
+			APIKey:    os.Getenv("CLOUDINARY_API_KEY"),
+			APISecret: os.Getenv("CLOUDINARY_API_SECRET"),
 		},
 		Env: getEnvWithDefault("ENV", "development"),
 	}

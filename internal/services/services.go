@@ -18,6 +18,7 @@ type Services struct {
 	Warehouse      *WarehouseService
 	WarehouseStock *WarehouseStockService
 	Image          *ImageService
+	Cloudinary     *CloudinaryService
 }
 
 func New(repos *repository.Repository, cfg *config.Config) *Services {
@@ -34,5 +35,6 @@ func New(repos *repository.Repository, cfg *config.Config) *Services {
 		Warehouse:      NewWarehouseService(repos.Warehouse),
 		WarehouseStock: NewWarehouseStockService(repos.WarehouseStock, repos.Warehouse, repos.ProductVariant),
 		Image:          NewImageService(repos.Image),
+		Cloudinary:     NewCloudinaryService(&cfg.Cloudinary),
 	}
 }

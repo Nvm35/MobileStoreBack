@@ -255,6 +255,15 @@ GET /api/images/product/chehol-apple-iphone-15-pro
 | `DELETE` | `/admin/images/:id`         | Удалить изображение            |
 | `PUT`    | `/admin/images/:id/primary` | Установить главное изображение |
 
+### ☁️ Управление Cloudinary
+
+| Method   | Endpoint                          | Description                              |
+| -------- | --------------------------------- | ---------------------------------------- |
+| `GET`    | `/admin/cloudinary/images`        | Получить список изображений из Cloudinary |
+| `GET`    | `/admin/cloudinary/folders`       | Получить список папок в Cloudinary       |
+| `POST`   | `/admin/cloudinary/upload`        | Загрузить изображение в Cloudinary       |
+| `DELETE` | `/admin/cloudinary/images/:public_id` | Удалить изображение из Cloudinary    |
+
 ### 📋 Управление заказами
 
 | Method | Endpoint                   | Description            |
@@ -338,6 +347,116 @@ Authorization: Bearer admin-jwt-token
   "cloudinary_public_id": "product-image-123",
   "url": "https://res.cloudinary.com/your-cloud/image/upload/v1/product-image-123.jpg",
   "is_primary": true
+}
+```
+
+### Работа с Cloudinary (админ)
+
+#### Получить список изображений
+
+```bash
+# Все изображения
+GET /api/admin/cloudinary/images
+Authorization: Bearer admin-jwt-token
+
+# Изображения в конкретной папке
+GET /api/admin/cloudinary/images?folder=products/iphone
+Authorization: Bearer admin-jwt-token
+
+# С пагинацией
+GET /api/admin/cloudinary/images?max_results=100&next_cursor=cursor-string
+Authorization: Bearer admin-jwt-token
+```
+
+**Ответ:**
+```json
+{
+  "resources": [
+    {
+      "public_id": "products/iphone/case-blue",
+      "format": "jpg",
+      "version": 1234567890,
+      "resource_type": "image",
+      "type": "upload",
+      "created_at": "2024-01-15T10:30:00Z",
+      "bytes": 245678,
+      "width": 1920,
+      "height": 1080,
+      "url": "https://res.cloudinary.com/your-cloud/image/upload/products/iphone/case-blue.jpg",
+      "secure_url": "https://res.cloudinary.com/your-cloud/image/upload/products/iphone/case-blue.jpg",
+      "folder": "products/iphone"
+    }
+  ],
+  "next_cursor": "cursor-string"
+}
+```
+
+#### Получить список папок
+
+```bash
+GET /api/admin/cloudinary/folders
+Authorization: Bearer admin-jwt-token
+```
+
+**Ответ:**
+```json
+{
+  "folders": [
+    {
+      "name": "products",
+      "path": "products",
+      "full_path": "products"
+    },
+    {
+      "name": "iphone",
+      "path": "iphone",
+      "full_path": "products/iphone"
+    }
+  ]
+}
+```
+
+#### Загрузить изображение в Cloudinary
+
+```bash
+POST /api/admin/cloudinary/upload
+Content-Type: multipart/form-data
+Authorization: Bearer admin-jwt-token
+
+# Form data:
+# file: (binary file)
+# folder: products/iphone (optional)
+```
+
+**Ответ:**
+```json
+{
+  "public_id": "products/iphone/new-image",
+  "format": "jpg",
+  "version": 1234567890,
+  "resource_type": "image",
+  "type": "upload",
+  "created_at": "2024-01-15T10:30:00Z",
+  "bytes": 245678,
+  "width": 1920,
+  "height": 1080,
+  "url": "https://res.cloudinary.com/your-cloud/image/upload/products/iphone/new-image.jpg",
+  "secure_url": "https://res.cloudinary.com/your-cloud/image/upload/products/iphone/new-image.jpg",
+  "folder": "products/iphone"
+}
+```
+
+#### Удалить изображение из Cloudinary
+
+```bash
+DELETE /api/admin/cloudinary/images/products/iphone/case-blue
+Authorization: Bearer admin-jwt-token
+```
+
+**Ответ:**
+```json
+{
+  "message": "Image deleted successfully"
 }
 ```
 
