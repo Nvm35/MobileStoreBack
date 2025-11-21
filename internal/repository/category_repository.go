@@ -21,7 +21,7 @@ func NewCategoryRepository(db *gorm.DB, redis *redis.Client) CategoryRepository 
 
 func (r *categoryRepository) GetAll() ([]*models.Category, error) {
 	var categories []*models.Category
-	
+
 	err := r.db.Order("name ASC").Find(&categories).Error
 	return categories, err
 }
@@ -50,7 +50,7 @@ func (r *categoryRepository) Create(category *models.Category) error {
 
 func (r *categoryRepository) Update(id string, name *string, description *string, slug *string, imageURL *string) (*models.Category, error) {
 	var category models.Category
-	
+
 	updates := make(map[string]interface{})
 	if name != nil {
 		updates["name"] = *name
@@ -64,12 +64,12 @@ func (r *categoryRepository) Update(id string, name *string, description *string
 	if imageURL != nil {
 		updates["image_url"] = *imageURL
 	}
-	
+
 	err := r.db.Model(&category).Where("id = ?", id).Updates(updates).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return r.GetByID(id)
 }
 
@@ -77,35 +77,43 @@ func (r *categoryRepository) Delete(id string) error {
 	return r.db.Where("id = ?", id).Delete(&models.Category{}).Error
 }
 
+func (r *categoryRepository) HasProducts(id string) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Product{}).Where("category_id = ?", id).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (r *categoryRepository) GetWithProducts(id string) (*models.Category, error) {
 	var category models.Category
-	
+
 	// Загружаем категорию с продуктами
 	query := r.db.Preload("Products", func(db *gorm.DB) *gorm.DB {
 		return db.Where("is_active = ?", true).Order("created_at DESC")
 	}).Where("id = ?", id)
-	
+
 	err := query.First(&category).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &category, nil
 }
 
 func (r *categoryRepository) GetBySlugWithProducts(slug string) (*models.Category, error) {
 	var category models.Category
-	
+
 	// Загружаем категорию с продуктами по slug
 	query := r.db.Preload("Products", func(db *gorm.DB) *gorm.DB {
 		return db.Where("is_active = ?", true).Order("created_at DESC")
 	}).Where("slug = ?", slug)
-	
+
 	err := query.First(&category).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &category, nil
 }
-

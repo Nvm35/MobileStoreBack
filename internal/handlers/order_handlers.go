@@ -147,12 +147,7 @@ func UpdateOrderStatus(orderService *services.OrderService) gin.HandlerFunc {
 			TrackingNumber *string `json:"tracking_number"`
 		}
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Валидация
+		// Валидация (ValidateRequest сам делает ShouldBindJSON)
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}

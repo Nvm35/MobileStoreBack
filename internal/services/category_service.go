@@ -1,6 +1,8 @@
 package services
 
 import (
+	"errors"
+
 	"mobile-store-back/internal/models"
 	"mobile-store-back/internal/repository"
 )
@@ -8,6 +10,8 @@ import (
 type CategoryService struct {
 	repo repository.CategoryRepository
 }
+
+var ErrCategoryHasProducts = errors.New("category has related products")
 
 func NewCategoryService(repo repository.CategoryRepository) *CategoryService {
 	return &CategoryService{
@@ -36,6 +40,15 @@ func (s *CategoryService) Update(id string, name *string, description *string, s
 }
 
 func (s *CategoryService) Delete(id string) error {
+	hasProducts, err := s.repo.HasProducts(id)
+	if err != nil {
+		return err
+	}
+
+	if hasProducts {
+		return ErrCategoryHasProducts
+	}
+
 	return s.repo.Delete(id)
 }
 
@@ -46,4 +59,3 @@ func (s *CategoryService) GetWithProducts(id string) (*models.Category, error) {
 func (s *CategoryService) GetBySlugWithProducts(slug string) (*models.Category, error) {
 	return s.repo.GetBySlugWithProducts(slug)
 }
-

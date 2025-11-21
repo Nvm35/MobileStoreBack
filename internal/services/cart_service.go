@@ -14,15 +14,56 @@ func NewCartService(repo repository.CartRepository) *CartService {
 }
 
 func (s *CartService) GetByUserID(userID string) ([]models.CartItem, error) {
-	return s.repo.GetByUserID(userID)
+	items, err := s.repo.GetByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Заполняем product_slug и variant_sku для каждого элемента
+	for i := range items {
+		if items[i].Product.Slug != "" {
+			items[i].ProductSlug = items[i].Product.Slug
+		}
+		if items[i].ProductVariant != nil && items[i].ProductVariant.SKU != "" {
+			items[i].VariantSKU = items[i].ProductVariant.SKU
+		}
+	}
+	
+	return items, nil
 }
 
-func (s *CartService) AddItem(userID string, productID string, quantity int) (*models.CartItem, error) {
-	return s.repo.AddItem(userID, productID, quantity)
+func (s *CartService) AddItem(userID string, productID string, variantID *string, quantity int) (*models.CartItem, error) {
+	item, err := s.repo.AddItem(userID, productID, variantID, quantity)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Заполняем product_slug и variant_sku
+	if item.Product.Slug != "" {
+		item.ProductSlug = item.Product.Slug
+	}
+	if item.ProductVariant != nil && item.ProductVariant.SKU != "" {
+		item.VariantSKU = item.ProductVariant.SKU
+	}
+	
+	return item, nil
 }
 
 func (s *CartService) UpdateItem(id string, userID string, quantity int) (*models.CartItem, error) {
-	return s.repo.UpdateItem(id, userID, quantity)
+	item, err := s.repo.UpdateItem(id, userID, quantity)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Заполняем product_slug и variant_sku
+	if item.Product.Slug != "" {
+		item.ProductSlug = item.Product.Slug
+	}
+	if item.ProductVariant != nil && item.ProductVariant.SKU != "" {
+		item.VariantSKU = item.ProductVariant.SKU
+	}
+	
+	return item, nil
 }
 
 func (s *CartService) RemoveItem(id string, userID string) error {

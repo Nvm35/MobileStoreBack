@@ -33,11 +33,14 @@ func NewCartRepository(db *gorm.DB, redis *redis.Client) CartRepository {
 
 func (r *cartRepository) GetByUserID(userID string) ([]models.CartItem, error) {
 	var items []models.CartItem
-	err := r.db.Where("user_id = ?", userID).Preload("Product").Find(&items).Error
+	err := r.db.Where("user_id = ?", userID).
+		Preload("Product").
+		Preload("ProductVariant").
+		Find(&items).Error
 	return items, err
 }
 
-func (r *cartRepository) AddItem(userID string, productIdentifier string, quantity int) (*models.CartItem, error) {
+func (r *cartRepository) AddItem(userID string, productIdentifier string, variantIdentifier *string, quantity int) (*models.CartItem, error) {
 	// Парсим userID
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
@@ -60,16 +63,42 @@ func (r *cartRepository) AddItem(userID string, productIdentifier string, quanti
 	}
 	productUUID := product.ID
 
+	// Определяем вариант товара и цену
+	var variantUUID *uuid.UUID
+	var itemPrice float64 = product.BasePrice
+
+	if variantIdentifier != nil && *variantIdentifier != "" {
+		variant, err := findProductVariantByIdentifier(r.db, *variantIdentifier, true)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("product variant not found or inactive")
+			}
+			return nil, err
+		}
+		// Проверяем, что вариант принадлежит этому товару
+		if variant.ProductID != productUUID {
+			return nil, errors.New("product variant does not belong to the specified product")
+		}
+		variantUUID = &variant.ID
+		itemPrice = variant.Price // Используем цену варианта, если он указан
+	}
+
 	// Используем транзакцию для атомарности и предотвращения race condition
 	var item models.CartItem
 	err = r.db.Transaction(func(tx *gorm.DB) error {
-		// Проверяем, есть ли уже такой товар в корзине
-		err := tx.Where("user_id = ? AND product_id = ?", userUUID, productUUID).First(&item).Error
+		// Проверяем, есть ли уже такой товар с таким вариантом в корзине
+		query := tx.Where("user_id = ? AND product_id = ?", userUUID, productUUID)
+		if variantUUID != nil {
+			query = query.Where("product_variant_id = ?", *variantUUID)
+		} else {
+			query = query.Where("product_variant_id IS NULL")
+		}
+		err := query.First(&item).Error
 
 		if err == nil {
 			// Товар уже есть в корзине - обновляем количество (upsert логика)
 			item.Quantity += quantity
-			item.Price = product.BasePrice // Обновляем цену на актуальную
+			item.Price = itemPrice // Обновляем цену на актуальную
 			return tx.Save(&item).Error
 		}
 
@@ -81,10 +110,11 @@ func (r *cartRepository) AddItem(userID string, productIdentifier string, quanti
 		// Товара нет, создаем новый
 		// SessionID не используется, так как корзина работает только для авторизованных пользователей
 		item = models.CartItem{
-			UserID:    userUUID,
-			ProductID: productUUID,
-			Quantity:  quantity,
-			Price:     product.BasePrice,
+			UserID:          userUUID,
+			ProductID:       productUUID,
+			ProductVariantID: variantUUID,
+			Quantity:        quantity,
+			Price:           itemPrice,
 			// SessionID остается nil (NULL в БД) - не используется в текущей логике
 		}
 
@@ -92,7 +122,7 @@ func (r *cartRepository) AddItem(userID string, productIdentifier string, quanti
 		err = tx.Create(&item).Error
 		if err != nil {
 			// Проверяем, не ошибка ли это unique constraint (race condition)
-			if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "UNIQUE constraint") {
+			if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") {
 				// Транзакция помечена как aborted, нужно откатить и начать новую
 				// Возвращаем специальную ошибку, чтобы обработать её вне транзакции
 				return &UniqueConstraintError{Err: err}
@@ -107,26 +137,69 @@ func (r *cartRepository) AddItem(userID string, productIdentifier string, quanti
 	if err != nil {
 		var uniqueErr *UniqueConstraintError
 		if errors.As(err, &uniqueErr) {
-			// Товар был добавлен другим запросом - получаем его и обновляем количество в новой транзакции
+			// Товар был добавлен другим запросом или constraint нарушен - получаем существующую запись
 			err = r.db.Transaction(func(tx *gorm.DB) error {
-				err := tx.Where("user_id = ? AND product_id = ?", userUUID, productUUID).First(&item).Error
-				if err != nil {
-					return err
+				// Пробуем найти запись с учетом варианта
+				query := tx.Where("user_id = ? AND product_id = ?", userUUID, productUUID)
+				if variantUUID != nil {
+					query = query.Where("product_variant_id = ?", *variantUUID)
+				} else {
+					query = query.Where("product_variant_id IS NULL")
 				}
-				item.Quantity += quantity
-				item.Price = product.BasePrice
-				return tx.Save(&item).Error
+				err := query.First(&item).Error
+				
+				if err == nil {
+					// Запись найдена - обновляем количество
+					item.Quantity += quantity
+					item.Price = itemPrice
+					return tx.Save(&item).Error
+				}
+				
+				// Если запись не найдена, возможно старый constraint без варианта
+				// Пробуем найти любую запись с этим товаром
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					var existingItem models.CartItem
+					err = tx.Where("user_id = ? AND product_id = ?", userUUID, productUUID).First(&existingItem).Error
+					if err == nil {
+						// Нашли запись без варианта - если добавляем с вариантом, создаем новую
+						// Но если constraint старый, это не сработает
+						// В этом случае обновляем существующую запись
+						if variantUUID != nil && existingItem.ProductVariantID == nil {
+							// Обновляем существующую запись, добавляя вариант
+							existingItem.ProductVariantID = variantUUID
+							existingItem.Quantity = quantity
+							existingItem.Price = itemPrice
+							return tx.Save(&existingItem).Error
+						}
+						// Иначе просто обновляем количество
+						existingItem.Quantity += quantity
+						existingItem.Price = itemPrice
+						return tx.Save(&existingItem).Error
+					}
+					// Если и это не сработало, создаем новую запись
+					item = models.CartItem{
+						UserID:          userUUID,
+						ProductID:       productUUID,
+						ProductVariantID: variantUUID,
+						Quantity:        quantity,
+						Price:           itemPrice,
+					}
+					return tx.Create(&item).Error
+				}
+				
+				return err
 			})
 			if err != nil {
 				return nil, err
 			}
 		} else {
+			// Если это не unique constraint ошибка, возвращаем её
 			return nil, err
 		}
 	}
 
 	// Загружаем связанные данные
-	err = r.db.Preload("Product").First(&item, item.ID).Error
+	err = r.db.Preload("Product").Preload("ProductVariant").First(&item, item.ID).Error
 	return &item, err
 }
 
@@ -139,7 +212,7 @@ func (r *cartRepository) UpdateItem(identifier string, userID string, quantity i
 			if err := r.db.Save(&item).Error; err != nil {
 				return nil, err
 			}
-			err = r.db.Preload("Product").First(&item, item.ID).Error
+			err = r.db.Preload("Product").Preload("ProductVariant").First(&item, item.ID).Error
 			return &item, err
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
@@ -160,7 +233,7 @@ func (r *cartRepository) UpdateItem(identifier string, userID string, quantity i
 		return nil, err
 	}
 
-	err = r.db.Preload("Product").First(&item, item.ID).Error
+	err = r.db.Preload("Product").Preload("ProductVariant").First(&item, item.ID).Error
 	return &item, err
 }
 

@@ -40,15 +40,25 @@ func AddToCart(cartService *services.CartService) gin.HandlerFunc {
 		}
 
 		var req struct {
-			Product  string `json:"product" validate:"required"`
-			Quantity int    `json:"quantity" validate:"required,min=1"`
+			Product   string  `json:"product" validate:"required"`
+			VariantID *string `json:"variant_id,omitempty"` // UUID варианта товара
+			VariantSKU *string `json:"variant_sku,omitempty"` // SKU варианта товара (альтернатива variant_id)
+			Quantity  int     `json:"quantity" validate:"required,min=1"`
 		}
 
 		if !utils.ValidateRequest(c, &req) {
 			return
 		}
 
-		item, err := cartService.AddItem(userID.(string), req.Product, req.Quantity)
+		// Определяем идентификатор варианта (приоритет у variant_id, затем variant_sku)
+		var variantIdentifier *string
+		if req.VariantID != nil && *req.VariantID != "" {
+			variantIdentifier = req.VariantID
+		} else if req.VariantSKU != nil && *req.VariantSKU != "" {
+			variantIdentifier = req.VariantSKU
+		}
+
+		item, err := cartService.AddItem(userID.(string), req.Product, variantIdentifier, req.Quantity)
 		if err != nil {
 			// Обрабатываем разные типы ошибок
 			errMsg := err.Error()

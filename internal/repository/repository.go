@@ -8,18 +8,18 @@ import (
 )
 
 type Repository struct {
-	User            UserRepository
-	Product         ProductRepository
-	ProductVariant  ProductVariantRepository
-	Order           OrderRepository
-	Auth            AuthRepository
-	Cart            CartRepository
-	Wishlist        WishlistRepository
-	Review          ReviewRepository
-	Category        CategoryRepository
-	Warehouse       WarehouseRepository
-	WarehouseStock  WarehouseStockRepository
-	Image           ImageRepository
+	User           UserRepository
+	Product        ProductRepository
+	ProductVariant ProductVariantRepository
+	Order          OrderRepository
+	Auth           AuthRepository
+	Cart           CartRepository
+	Wishlist       WishlistRepository
+	Review         ReviewRepository
+	Category       CategoryRepository
+	Warehouse      WarehouseRepository
+	WarehouseStock WarehouseStockRepository
+	Image          ImageRepository
 	// AddressRepository удален - адреса теперь встроены в User
 }
 
@@ -85,7 +85,7 @@ type AuthRepository interface {
 
 type CartRepository interface {
 	GetByUserID(userID string) ([]models.CartItem, error)
-	AddItem(userID string, productID string, quantity int) (*models.CartItem, error)
+	AddItem(userID string, productID string, variantID *string, quantity int) (*models.CartItem, error)
 	UpdateItem(id string, userID string, quantity int) (*models.CartItem, error)
 	RemoveItem(id string, userID string) error
 	Clear(userID string) error
@@ -112,7 +112,6 @@ type ReviewRepository interface {
 	Approve(id string, approved bool) error
 }
 
-
 type CategoryRepository interface {
 	GetAll() ([]*models.Category, error)
 	GetByID(id string) (*models.Category, error)
@@ -120,6 +119,7 @@ type CategoryRepository interface {
 	Create(category *models.Category) error
 	Update(id string, name *string, description *string, slug *string, imageURL *string) (*models.Category, error)
 	Delete(id string) error
+	HasProducts(id string) (bool, error)
 	GetWithProducts(id string) (*models.Category, error)
 	GetBySlugWithProducts(slug string) (*models.Category, error)
 }

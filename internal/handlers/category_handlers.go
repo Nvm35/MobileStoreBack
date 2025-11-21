@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"mobile-store-back/internal/models"
@@ -24,18 +25,30 @@ func GetCategories(categoryService *services.CategoryService) gin.HandlerFunc {
 
 func GetCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		slug := c.Param("slug")
+		// Пробуем получить параметр как "id" (для админских роутов) или "slug" (для публичных)
+		identifier := c.Param("id")
+		if identifier == "" {
+			identifier = c.Param("slug")
+		}
+
+		// Пробуем найти по slug или ID
+		var category *models.Category
+		var err error
 		
-		category, err := categoryService.GetBySlug(slug)
+		// Сначала пробуем по slug
+		category, err = categoryService.GetBySlug(identifier)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
-			return
+			// Если не найден по slug, пробуем по ID
+			category, err = categoryService.GetByID(identifier)
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
+				return
+			}
 		}
 
 		c.JSON(http.StatusOK, gin.H{"category": category})
 	}
 }
-
 
 func GetCategoryProducts(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -53,7 +66,6 @@ func GetCategoryProducts(categoryService *services.CategoryService) gin.HandlerF
 		})
 	}
 }
-
 
 // Админские хендлеры
 func CreateCategory(categoryService *services.CategoryService) gin.HandlerFunc {
@@ -91,7 +103,7 @@ func CreateCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 func UpdateCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
-		
+
 		var req struct {
 			Name        *string `json:"name"`
 			Description *string `json:"description"`
@@ -120,6 +132,11 @@ func DeleteCategory(categoryService *services.CategoryService) gin.HandlerFunc {
 
 		err := categoryService.Delete(id)
 		if err != nil {
+			if errors.Is(err, services.ErrCategoryHasProducts) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete category with existing products"})
+				return
+			}
+
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}

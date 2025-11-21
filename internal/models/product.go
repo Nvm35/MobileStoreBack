@@ -19,12 +19,12 @@ type Product struct {
 	Brand       string          `json:"brand" gorm:"not null" validate:"required,min=2"`
 	Model       string          `json:"model"`
 	Material    string          `json:"material" gorm:"type:varchar(255)"`
-	CategoryID  uuid.UUID       `json:"category_id" gorm:"type:uuid;not null"`
+	CategoryID  uuid.UUID       `json:"-" gorm:"type:uuid;not null"` // Скрываем UUID категории
 	Tags        pq.StringArray  `json:"tags" gorm:"type:text[]"`
 	VideoURL    *string         `json:"video_url" gorm:"type:text" validate:"omitempty,url"` // Ссылка на видео товара
 	ViewCount   int             `json:"view_count" gorm:"default:0"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
+	CreatedAt   time.Time       `json:"created_at" gorm:"type:timestamp"`
+	UpdatedAt   time.Time       `json:"updated_at" gorm:"type:timestamp"`
 
 	// Связи
 	Category   Category         `json:"category,omitempty" gorm:"foreignKey:CategoryID"`
@@ -39,28 +39,31 @@ type Category struct {
 	Description   string     `json:"description" gorm:"type:text"`
 	Slug          string     `json:"slug" gorm:"uniqueIndex;not null" validate:"required"`
 	ImageURL      string     `json:"image_url" gorm:"type:text"`
-	CreatedAt     time.Time  `json:"created_at"`
+	CreatedAt     time.Time  `json:"created_at" gorm:"type:timestamp"`
 
 	// Связи
-	Products []Product  `json:"products,omitempty" gorm:"foreignKey:CategoryID"`
+	Products []Product  `json:"-" gorm:"foreignKey:CategoryID"` // Скрываем связи
 }
 
 type ProductVariant struct {
 	ID        uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	ProductID uuid.UUID `json:"product_id" gorm:"type:uuid;not null"`
-	SKU       string    `json:"sku" gorm:"uniqueIndex;not null" validate:"required"`
+	ProductID uuid.UUID `json:"-" gorm:"type:uuid;not null"` // Скрываем UUID в JSON
+	SKU       string    `json:"sku" gorm:"uniqueIndex;not null" validate:"required"` // SKU как основной идентификатор
 	Name      string    `json:"name" gorm:"not null" validate:"required,min=2"`
 	Color     string    `json:"color" gorm:"type:varchar(100)"`
 	Size      string    `json:"size" gorm:"type:varchar(50)"`
 	Price     float64   `json:"price" gorm:"not null" validate:"required,min=0"`
 	IsActive  bool      `json:"is_active" gorm:"default:true"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at" gorm:"type:timestamp"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamp"`
 
-	// Связи
-	Product     Product           `json:"product,omitempty" gorm:"foreignKey:ProductID"`
-	WarehouseStocks []WarehouseStock `json:"warehouse_stocks,omitempty" gorm:"foreignKey:ProductVariantID"`
-	OrderItems  []OrderItem       `json:"order_items,omitempty" gorm:"foreignKey:ProductVariantID"`
+	// Связи (не загружаем полный Product, только slug если нужно)
+	Product     Product           `json:"-" gorm:"foreignKey:ProductID"` // Скрываем полный объект Product
+	WarehouseStocks []WarehouseStock `json:"-" gorm:"foreignKey:ProductVariantID"`
+	OrderItems  []OrderItem       `json:"-" gorm:"foreignKey:ProductVariantID"`
+	
+	// Вычисляемое поле для API (заполняется в сервисе/обработчике)
+	ProductSlug string `json:"product_slug,omitempty" gorm:"-"`
 }
 
 // Warehouse - склад/филиал

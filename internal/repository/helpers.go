@@ -39,5 +39,28 @@ func findProductIDByIdentifier(db *gorm.DB, identifier string) (uuid.UUID, error
 	return product.ID, nil
 }
 
+func findProductVariantByIdentifier(db *gorm.DB, identifier string, onlyActive bool) (*models.ProductVariant, error) {
+	var variant models.ProductVariant
+	query := db.Model(&models.ProductVariant{})
+	if onlyActive {
+		query = query.Where("is_active = ?", true)
+	}
+
+	if id, err := uuid.Parse(identifier); err == nil {
+		if err := query.Where("id = ?", id).First(&variant).Error; err == nil {
+			return &variant, nil
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	}
+
+	// Если это не UUID или запись по UUID не найдена, пробуем SKU
+	if err := query.Where("sku = ?", identifier).First(&variant).Error; err != nil {
+		return nil, err
+	}
+
+	return &variant, nil
+}
+
 
 

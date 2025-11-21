@@ -10,19 +10,25 @@ import (
 
 // CartItem - элементы корзины
 type CartItem struct {
-	ID        uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID    uuid.UUID `json:"user_id" gorm:"type:uuid;not null;index"`
-	SessionID *string   `json:"session_id,omitempty" gorm:"type:varchar(255)"` // Не используется в текущей логике (корзина только для авторизованных)
-	ProductID uuid.UUID `json:"product_id" gorm:"type:uuid;not null;index"`
-	Quantity  int       `json:"quantity" gorm:"not null" validate:"required,min=1"`
-	Price     float64   `json:"price" gorm:"type:decimal(10,2);not null" validate:"min=0"`
-	ExpiresAt *time.Time `json:"expires_at"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID              uuid.UUID       `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"` // ID нужен для удаления/обновления конкретного элемента
+	UserID          uuid.UUID       `json:"-" gorm:"type:uuid;not null;index"` // Скрываем UUID пользователя
+	SessionID       *string         `json:"-" gorm:"type:varchar(255)"` // Не используется в текущей логике
+	ProductID       uuid.UUID       `json:"-" gorm:"type:uuid;not null;index"` // Скрываем UUID товара
+	ProductVariantID *uuid.UUID     `json:"-" gorm:"type:uuid;index"` // Скрываем UUID варианта
+	Quantity        int             `json:"quantity" gorm:"not null" validate:"required,min=1"`
+	Price           float64         `json:"price" gorm:"type:decimal(10,2);not null" validate:"min=0"`
+	ExpiresAt       *time.Time      `json:"-" gorm:"type:timestamp"`
+	CreatedAt       time.Time       `json:"-" gorm:"type:timestamp"`
+	UpdatedAt       time.Time       `json:"-" gorm:"type:timestamp"`
 
-	// Связи
-	User    User    `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID"`
-	Product Product `json:"product,omitempty" gorm:"foreignKey:ProductID;references:ID"`
+	// Связи (загружаем только нужные поля)
+	User          User           `json:"-" gorm:"foreignKey:UserID;references:ID"`
+	Product       Product        `json:"product,omitempty" gorm:"foreignKey:ProductID;references:ID"`
+	ProductVariant *ProductVariant `json:"variant,omitempty" gorm:"foreignKey:ProductVariantID;references:ID"`
+	
+	// Вычисляемые поля для API (заполняются в сервисе/обработчике)
+	ProductSlug   string  `json:"product_slug,omitempty" gorm:"-"`
+	VariantSKU    string  `json:"variant_sku,omitempty" gorm:"-"`
 }
 
 // WishlistItem - элементы избранного

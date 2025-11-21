@@ -22,23 +22,90 @@ func NewProductVariantService(repo repository.ProductVariantRepository, productR
 }
 
 func (s *ProductVariantService) Create(productID string, sku string, name string, color string, size string, price float64, isActive bool) (*models.ProductVariant, error) {
-	return s.repo.Create(productID, sku, name, color, size, price, isActive)
+	variant, err := s.repo.Create(productID, sku, name, color, size, price, isActive)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Заполняем product_slug если нужно
+	if s.productRepo != nil {
+		product, err := s.productRepo.GetByID(productID)
+		if err == nil {
+			variant.ProductSlug = product.Slug
+		}
+	}
+	
+	return variant, nil
 }
 
 func (s *ProductVariantService) GetByID(id string) (*models.ProductVariant, error) {
-	return s.repo.GetByID(id)
+	variant, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Заполняем product_slug если нужно
+	if s.productRepo != nil {
+		product, err := s.productRepo.GetByID(variant.ProductID.String())
+		if err == nil {
+			variant.ProductSlug = product.Slug
+		}
+	}
+	
+	return variant, nil
 }
 
 func (s *ProductVariantService) GetBySKU(sku string) (*models.ProductVariant, error) {
-	return s.repo.GetBySKU(sku)
+	variant, err := s.repo.GetBySKU(sku)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Заполняем product_slug если нужно
+	if s.productRepo != nil {
+		product, err := s.productRepo.GetByID(variant.ProductID.String())
+		if err == nil {
+			variant.ProductSlug = product.Slug
+		}
+	}
+	
+	return variant, nil
 }
 
 func (s *ProductVariantService) GetByProductID(productID string) ([]*models.ProductVariant, error) {
-	return s.repo.GetByProductID(productID)
+	variants, err := s.repo.GetByProductID(productID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Заполняем product_slug для каждого варианта
+	if s.productRepo != nil {
+		product, err := s.productRepo.GetByID(productID)
+		if err == nil {
+			for _, variant := range variants {
+				variant.ProductSlug = product.Slug
+			}
+		}
+	}
+	
+	return variants, nil
 }
 
 func (s *ProductVariantService) Update(id string, sku *string, name *string, color *string, size *string, price *float64, isActive *bool) (*models.ProductVariant, error) {
-	return s.repo.Update(id, sku, name, color, size, price, isActive)
+	variant, err := s.repo.Update(id, sku, name, color, size, price, isActive)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Заполняем product_slug если нужно
+	if s.productRepo != nil {
+		product, err := s.productRepo.GetByID(variant.ProductID.String())
+		if err == nil {
+			variant.ProductSlug = product.Slug
+		}
+	}
+	
+	return variant, nil
 }
 
 func (s *ProductVariantService) Delete(id string) error {
@@ -51,15 +118,31 @@ func (s *ProductVariantService) GetByProductSlugOrID(identifier string) ([]*mode
 		return nil, errors.New("product repository dependency is not configured")
 	}
 
+	var product *models.Product
+	var err error
+
 	// Если пришел UUID, работаем напрямую
 	if _, err := uuid.Parse(identifier); err == nil {
-		return s.repo.GetByProductID(identifier)
+		product, err = s.productRepo.GetByID(identifier)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		product, err = s.productRepo.GetBySlug(identifier)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	product, err := s.productRepo.GetBySlug(identifier)
+	variants, err := s.repo.GetByProductID(product.ID.String())
 	if err != nil {
 		return nil, err
 	}
 
-	return s.repo.GetByProductID(product.ID.String())
+	// Заполняем product_slug для каждого варианта
+	for _, variant := range variants {
+		variant.ProductSlug = product.Slug
+	}
+
+	return variants, nil
 }

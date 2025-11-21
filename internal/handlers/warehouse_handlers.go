@@ -24,7 +24,11 @@ func GetWarehouses(warehouseService *services.WarehouseService) gin.HandlerFunc 
 // GetWarehouse - получение склада по slug или ID
 func GetWarehouse(warehouseService *services.WarehouseService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		identifier := c.Param("slug") // Может быть как slug, так и ID
+		// Пробуем получить параметр как "id" (для админских роутов) или "slug" (для публичных)
+		identifier := c.Param("id")
+		if identifier == "" {
+			identifier = c.Param("slug")
+		}
 
 		warehouse, err := warehouseService.GetBySlugOrID(identifier)
 		if err != nil {
