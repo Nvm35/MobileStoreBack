@@ -82,7 +82,7 @@ func Load() *Config {
 		Auth: AuthConfig{
 			RefreshTokenDays:      getEnvAsIntWithDefault("REFRESH_TOKEN_DAYS", 30),
 			RefreshCookieName:     getEnvWithDefault("REFRESH_COOKIE_NAME", "refresh_token"),
-			RefreshCookiePath:     getEnvWithDefault("REFRESH_COOKIE_PATH", "/api/auth/refresh"),
+			RefreshCookiePath:     getEnvWithDefault("REFRESH_COOKIE_PATH", "/"),
 			RefreshCookieDomain:   os.Getenv("COOKIE_DOMAIN"),
 			RefreshCookieSecure:   getEnvWithDefault("ENV", "development") == "production",
 			RefreshCookieSameSite: getEnvWithDefault("COOKIE_SAMESITE", "Lax"),

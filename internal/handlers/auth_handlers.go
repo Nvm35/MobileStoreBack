@@ -115,10 +115,14 @@ func setRefreshTokenCookie(c *gin.Context, cfg *config.Config, token string, exp
 		Name:     cfg.Auth.RefreshCookieName,
 		Value:    token,
 		Path:     cookiePath(cfg),
-		Domain:   cfg.Auth.RefreshCookieDomain,
 		HttpOnly: true,
 		Secure:   cfg.Auth.RefreshCookieSecure,
 		SameSite: sameSiteFromConfig(cfg.Auth.RefreshCookieSameSite),
+	}
+
+	// Устанавливаем Domain только если он указан (для локальной разработки лучше не устанавливать)
+	if cfg.Auth.RefreshCookieDomain != "" {
+		cookie.Domain = cfg.Auth.RefreshCookieDomain
 	}
 
 	if !expiresAt.IsZero() {
@@ -130,17 +134,23 @@ func setRefreshTokenCookie(c *gin.Context, cfg *config.Config, token string, exp
 }
 
 func clearRefreshTokenCookie(c *gin.Context, cfg *config.Config) {
-	http.SetCookie(c.Writer, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     cfg.Auth.RefreshCookieName,
 		Value:    "",
 		Path:     cookiePath(cfg),
-		Domain:   cfg.Auth.RefreshCookieDomain,
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
 		Secure:   cfg.Auth.RefreshCookieSecure,
 		SameSite: sameSiteFromConfig(cfg.Auth.RefreshCookieSameSite),
-	})
+	}
+
+	// Устанавливаем Domain только если он указан (для локальной разработки лучше не устанавливать)
+	if cfg.Auth.RefreshCookieDomain != "" {
+		cookie.Domain = cfg.Auth.RefreshCookieDomain
+	}
+
+	http.SetCookie(c.Writer, cookie)
 }
 
 func sameSiteFromConfig(value string) http.SameSite {
